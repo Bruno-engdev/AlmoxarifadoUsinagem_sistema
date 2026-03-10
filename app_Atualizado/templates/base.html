@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Almoxarifado de Ferramentas{% endblock %}</title>
+
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+          rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <!-- Custom CSS -->
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- ====== Navbar ====== -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="/">
+            <i class="bi bi-tools me-2"></i> Almoxarifado de Ferramentas
+        </a>
+        <button class="navbar-toggler" type="button"
+                data-bs-toggle="collapse" data-bs-target="#navMain">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navMain">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}"
+                       href="/"><i class="bi bi-speedometer2 me-1"></i>Painel</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'tools' %}active{% endif %}"
+                       href="/tools"><i class="bi bi-wrench me-1"></i>Ferramentas</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'employees' %}active{% endif %}"
+                       href="/employees"><i class="bi bi-people me-1"></i>Funcionários</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'movements' %}active{% endif %}"
+                       href="/movements"><i class="bi bi-arrow-left-right me-1"></i>Movimentações</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'tool_types' %}active{% endif %}"
+                       href="/tool-types"><i class="bi bi-tags me-1"></i>Tipos de Ferramenta</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- ====== Content ====== -->
+<main class="container-fluid py-4 px-4">
+    {% block content %}{% endblock %}
+</main>
+
+<!-- ====== Footer ====== -->
+<footer class="text-center text-muted py-3 border-top mt-auto small">
+    Sistema de Almoxarifado de Ferramentas &copy; 2026
+</footer>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Custom JS -->
+<script src="/static/js/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

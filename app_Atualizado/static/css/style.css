@@ -1,0 +1,73 @@
+/* ============================================================
+   Tool Crib – Custom Styles
+   ============================================================ */
+
+/* Smooth body */
+body {
+    background-color: #f5f6fa;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Navbar brand */
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: 0.5px;
+}
+
+/* Cards */
+.card {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.card-header {
+    font-weight: 600;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* Table tweaks */
+.table th {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Status badges */
+.badge {
+    font-weight: 600;
+}
+
+/* Dashboard summary cards */
+.card.text-bg-primary,
+.card.text-bg-danger,
+.card.text-bg-info,
+.card.text-bg-warning {
+    border-radius: 0.75rem;
+}
+
+/* Footer */
+footer {
+    font-size: 0.85rem;
+}
+
+/* Highlight on hover */
+.table-hover tbody tr:hover {
+    transition: background-color 0.15s ease;
+}
+
+/* Movement modal submit button default */
+#mvSubmitBtn {
+    min-width: 130px;
+}

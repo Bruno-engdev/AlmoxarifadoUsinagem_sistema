@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% set active_page = "tools" %}
+
+{% block title %}Ferramentas – Almoxarifado{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="mb-0"><i class="bi bi-wrench me-2"></i>Estoque de Ferramentas</h2>
+    <a href="/tools/create" class="btn btn-success">
+        <i class="bi bi-plus-circle me-1"></i> Cadastrar Nova Ferramenta
+    </a>
+</div>
+
+<!-- Search -->
+<form method="GET" action="/tools" class="mb-4">
+    <div class="input-group" style="max-width: 450px;">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="search" class="form-control"
+               placeholder="Buscar por nome ou tipo..." value="{{ search }}">
+        <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+        {% if search %}
+        <a href="/tools" class="btn btn-outline-danger">Limpar</a>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Tools Table -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0 align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome da Ferramenta</th>
+                        <th>Tipo</th>
+                        <th>Localização</th>
+                        <th class="text-center">Mín.</th>
+                        <th class="text-center">Máx.</th>
+                        <th class="text-center">Estoque</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Dias Est.</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for item in tools %}
+                {% set t = item.tool %}
+                    <tr class="{{ t.status_class }}">
+                        <td>{{ t.id }}</td>
+                        <td>
+                            <a href="/tools/{{ t.id }}" class="text-decoration-none fw-semibold">
+                                {{ t.name }}
+                            </a>
+                        </td>
+                        <td>{{ t.tool_type.name }}</td>
+                        <td>{{ t.location or "—" }}</td>
+                        <td class="text-center">{{ t.min_stock }}</td>
+                        <td class="text-center">{{ t.max_stock }}</td>
+                        <td class="text-center fw-bold">{{ t.current_stock }}</td>
+                        <td class="text-center">
+                            {% if t.status == "CRITICAL" %}
+                                <span class="badge bg-danger">CRÍTICO</span>
+                            {% elif t.status == "LOW STOCK" %}
+                                <span class="badge bg-warning text-dark">ESTOQUE BAIXO</span>
+                            {% else %}
+                                <span class="badge bg-success">OK</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if item.days_remaining is none %}
+                                <span class="text-muted small">—</span>
+                            {% elif item.days_remaining == 0 %}
+                                <span class="badge bg-danger">0</span>
+                            {% elif item.days_remaining < 30 %}
+                                <span class="badge bg-warning text-dark">{{ item.days_remaining }}d</span>
+                            {% else %}
+                                <span class="text-success">{{ item.days_remaining }}d</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center text-nowrap">
+                            <!-- Add Stock -->
+                            <button class="btn btn-sm btn-outline-success"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#movementModal"
+                                    onclick="prepareMovement({{ t.id }}, '{{ t.name }}', 'IN')">
+                                <i class="bi bi-plus-lg"></i> Entrada
+                            </button>
+                            <!-- Remove Stock -->
+                            <button class="btn btn-sm btn-outline-danger"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#movementModal"
+                                    onclick="prepareMovement({{ t.id }}, '{{ t.name }}', 'OUT')">
+                                <i class="bi bi-dash-lg"></i> Saída
+                            </button>
+                        </td>
+                    </tr>
+                {% endfor %}
+                {% if not tools %}
+                    <tr>
+                        <td colspan="10" class="text-center text-muted py-4">
+                            Nenhuma ferramenta encontrada. <a href="/tools/create">Cadastrar nova ferramenta</a>.
+                        </td>
+                    </tr>
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ====== Movement Modal ====== -->
+<div class="modal fade" id="movementModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="POST" action="/tools/movement" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="movementModalTitle">Movimentação de Estoque</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="tool_id" id="mvToolId">
+                <input type="hidden" name="movement_type" id="mvType">
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Ferramenta</label>
+                    <input type="text" class="form-control" id="mvToolName" readonly>
+                </div>
+
+                <div class="mb-3">
+                    <label for="mvEmployee" class="form-label fw-semibold">Funcionário *</label>
+                    <select name="employee_id" id="mvEmployee" class="form-select" required>
+                        <option value="">Selecione o funcionário...</option>
+                        {% for e in employees %}
+                        <option value="{{ e.id }}">{{ e.name }} ({{ e.department }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="mvQty" class="form-label fw-semibold">Quantidade *</label>
+                    <input type="number" name="quantity" id="mvQty" class="form-control"
+                           min="1" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="mvNotes" class="form-label fw-semibold">Observações</label>
+                    <textarea name="notes" id="mvNotes" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn" id="mvSubmitBtn">Confirmar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function prepareMovement(toolId, toolName, type) {
+    document.getElementById('mvToolId').value = toolId;
+    document.getElementById('mvToolName').value = toolName;
+    document.getElementById('mvType').value = type;
+
+    const title = document.getElementById('movementModalTitle');
+    const btn = document.getElementById('mvSubmitBtn');
+
+    if (type === 'IN') {
+        title.textContent = 'Entrada de Estoque – ' + toolName;
+        btn.className = 'btn btn-success';
+        btn.textContent = 'Adicionar Estoque';
+    } else {
+        title.textContent = 'Saída de Estoque – ' + toolName;
+        btn.className = 'btn btn-danger';
+        btn.textContent = 'Retirar Estoque';
+    }
+
+    // Reset form fields
+    document.getElementById('mvEmployee').value = '';
+    document.getElementById('mvQty').value = '';
+    document.getElementById('mvNotes').value = '';
+}
+</script>
+{% endblock %}
