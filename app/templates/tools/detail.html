@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% set active_page = "tools" %}
+
+{% block title %}{{ tool.name }} – Almoxarifado{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <a href="/tools" class="btn btn-outline-secondary btn-sm mb-3">
+            <i class="bi bi-arrow-left me-1"></i> Voltar para Ferramentas
+        </a>
+
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">{{ tool.name }}</h4>
+                {% if tool.status == "CRITICAL" %}
+                    <span class="badge bg-danger fs-6">CRÍTICO</span>
+                {% elif tool.status == "LOW STOCK" %}
+                    <span class="badge bg-warning text-dark fs-6">ESTOQUE BAIXO</span>
+                {% else %}
+                    <span class="badge bg-success fs-6">OK</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <strong>Tipo:</strong> {{ tool.tool_type.name }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Descrição:</strong> {{ tool.description or "—" }}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Localização:</strong>
+                        {% if tool.location %}
+                            <span class="badge bg-secondary fs-6">{{ tool.location }}</span>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Estoque Mín.:</strong> {{ tool.min_stock }}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Estoque Máx.:</strong> {{ tool.max_stock }}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Estoque Atual:</strong>
+                        <span class="fw-bold {% if tool.current_stock < tool.min_stock %}text-danger{% else %}text-success{% endif %}">
+                            {{ tool.current_stock }}
+                        </span>
+                    </div>
+                </div>
+
+                {% if days_remaining is not none %}
+                <div class="alert {% if days_remaining < 30 %}alert-warning{% else %}alert-info{% endif %}">
+                    <i class="bi bi-clock me-1"></i>
+                    <strong>Dias estimados até o estoque mínimo:</strong>
+                    {% if days_remaining == 0 %}
+                        Já está no mínimo ou abaixo!
+                    {% else %}
+                        {{ days_remaining }} dias
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Parameters -->
+                {% if tool.parameters %}
+                <h5 class="mt-4 mb-3"><i class="bi bi-sliders me-1"></i> Parâmetros</h5>
+                <table class="table table-sm table-bordered w-auto">
+                    <thead class="table-light">
+                        <tr><th>Parâmetro</th><th>Valor</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for p in tool.parameters %}
+                        <tr><td>{{ p.parameter_name }}</td><td>{{ p.parameter_value }}</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+
+                <!-- Recent Movements -->
+                <h5 class="mt-4 mb-3"><i class="bi bi-arrow-left-right me-1"></i> Movimentações Recentes</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Data</th>
+                                <th>Funcionário</th>
+                                <th>Tipo</th>
+                                <th>Qtd.</th>
+                                <th>Observações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for m in tool.movements|sort(attribute='timestamp', reverse=True) %}
+                            <tr>
+                                <td>{{ m.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ m.employee.name }}</td>
+                                <td>
+                                    {% if m.movement_type == "IN" %}
+                                        <span class="badge bg-success">ENTRADA</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">SAÍDA</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ m.quantity }}</td>
+                                <td>{{ m.notes or "—" }}</td>
+                            </tr>
+                        {% endfor %}
+                        {% if not tool.movements %}
+                            <tr><td colspan="5" class="text-center text-muted">Nenhuma movimentação registrada</td></tr>
+                        {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

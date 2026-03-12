@@ -1,0 +1,509 @@
+/* ============================================================
+   Tool Crib – Dark Theme (VS Code / Discord style)
+   ============================================================ */
+
+:root {
+    --bg-primary: #1e1e2e;
+    --bg-secondary: #252536;
+    --bg-tertiary: #2b2b3d;
+    --bg-card: #2b2b3d;
+    --bg-card-header: #32324a;
+    --bg-input: #32324a;
+    --bg-navbar: #181825;
+    --text-primary: #cdd6f4;
+    --text-secondary: #a6adc8;
+    --text-muted: #6c7086;
+    --border-color: #3b3b53;
+    --accent-blue: #89b4fa;
+    --accent-green: #a6e3a1;
+    --accent-red: #f38ba8;
+    --accent-yellow: #f9e2af;
+    --accent-purple: #cba6f7;
+    --accent-teal: #94e2d5;
+    --accent-orange: #fab387;
+    --hover-bg: #35355a;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Smooth body */
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+main {
+    flex: 1;
+}
+
+/* ====== Navbar ====== */
+.navbar {
+    background-color: var(--bg-navbar) !important;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: 0.5px;
+    color: var(--accent-blue) !important;
+}
+
+.navbar-dark .navbar-nav .nav-link,
+.navbar .nav-link {
+    color: var(--text-secondary) !important;
+    transition: color 0.2s ease, background-color 0.2s ease;
+    border-radius: 6px;
+    padding: 0.4rem 0.75rem !important;
+    margin: 0 2px;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover,
+.navbar .nav-link:hover {
+    color: var(--text-primary) !important;
+    background-color: var(--hover-bg);
+}
+
+.navbar-dark .navbar-nav .nav-link.active,
+.navbar .nav-link.active {
+    color: #fff !important;
+    background-color: var(--accent-blue);
+    font-weight: 600;
+}
+
+/* ====== Cards ====== */
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    background-color: var(--bg-card);
+    box-shadow: 0 2px 8px var(--shadow-color);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 16px var(--shadow-color);
+}
+
+.card-header {
+    font-weight: 600;
+    background-color: var(--bg-card-header);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.card-body {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border-radius: 0.75rem;
+}
+
+/* Dashboard summary cards */
+.card.text-bg-primary {
+    background: linear-gradient(135deg, #3b5bdb, #5c7cfa) !important;
+    border: none;
+    border-radius: 0.75rem;
+}
+
+.card.text-bg-danger {
+    background: linear-gradient(135deg, #c92a2a, #f03e3e) !important;
+    border: none;
+    border-radius: 0.75rem;
+}
+
+.card.text-bg-info {
+    background: linear-gradient(135deg, #1098ad, #22b8cf) !important;
+    border: none;
+    border-radius: 0.75rem;
+}
+
+.card.text-bg-warning {
+    background: linear-gradient(135deg, #e67700, #f59f00) !important;
+    border: none;
+    border-radius: 0.75rem;
+}
+
+.card.text-bg-primary, .card.text-bg-danger,
+.card.text-bg-info, .card.text-bg-warning {
+    box-shadow: 0 4px 14px var(--shadow-color);
+}
+
+/* ====== Tables ====== */
+.table {
+    color: var(--text-primary);
+    --bs-table-bg: var(--bg-card);
+    --bs-table-color: var(--text-primary);
+    --bs-table-border-color: var(--border-color);
+    --bs-table-striped-bg: var(--bg-tertiary);
+    --bs-table-striped-color: var(--text-primary);
+    --bs-table-hover-bg: var(--hover-bg);
+    --bs-table-hover-color: var(--text-primary);
+}
+
+.table th {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-secondary);
+    border-bottom-color: var(--border-color);
+}
+
+.table td {
+    vertical-align: middle;
+    border-bottom-color: var(--border-color);
+}
+
+.table-dark {
+    --bs-table-bg: var(--bg-navbar) !important;
+    --bs-table-color: var(--text-primary);
+    --bs-table-border-color: var(--border-color);
+}
+
+thead.table-dark th {
+    background-color: var(--bg-navbar) !important;
+    color: var(--accent-blue);
+    border-color: var(--border-color) !important;
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--hover-bg) !important;
+    transition: background-color 0.15s ease;
+}
+
+.table-danger {
+    --bs-table-bg: rgba(243, 139, 168, 0.12) !important;
+    --bs-table-color: var(--accent-red) !important;
+}
+
+.table-warning {
+    --bs-table-bg: rgba(249, 226, 175, 0.10) !important;
+    --bs-table-color: var(--accent-yellow) !important;
+}
+
+/* ====== Forms & Inputs ====== */
+.form-control, .form-select {
+    background-color: var(--bg-input);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: var(--bg-input);
+    border-color: var(--accent-blue);
+    color: var(--text-primary);
+    box-shadow: 0 0 0 0.2rem rgba(137, 180, 250, 0.25);
+}
+
+.form-control::placeholder {
+    color: var(--text-muted);
+}
+
+.form-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.input-group-text {
+    background-color: var(--bg-card-header);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
+/* ====== Buttons ====== */
+.btn-primary {
+    background-color: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #1e1e2e;
+    font-weight: 600;
+}
+
+.btn-primary:hover {
+    background-color: #7ba8f0;
+    border-color: #7ba8f0;
+    color: #1e1e2e;
+}
+
+.btn-success {
+    background-color: var(--accent-green);
+    border-color: var(--accent-green);
+    color: #1e1e2e;
+    font-weight: 600;
+}
+
+.btn-success:hover {
+    background-color: #8fd48f;
+    border-color: #8fd48f;
+    color: #1e1e2e;
+}
+
+.btn-danger {
+    background-color: var(--accent-red);
+    border-color: var(--accent-red);
+    color: #1e1e2e;
+    font-weight: 600;
+}
+
+.btn-danger:hover {
+    background-color: #e57a97;
+    border-color: #e57a97;
+}
+
+.btn-warning {
+    background-color: var(--accent-yellow);
+    border-color: var(--accent-yellow);
+    color: #1e1e2e;
+    font-weight: 600;
+}
+
+.btn-outline-secondary {
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--hover-bg);
+    border-color: var(--accent-blue);
+    color: var(--text-primary);
+}
+
+.btn-outline-light {
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
+.btn-outline-light:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+/* ====== Badges ====== */
+.badge {
+    font-weight: 600;
+}
+
+.badge.bg-danger {
+    background-color: var(--accent-red) !important;
+    color: #1e1e2e;
+}
+
+.badge.bg-warning {
+    background-color: var(--accent-yellow) !important;
+    color: #1e1e2e;
+}
+
+.badge.bg-success {
+    background-color: var(--accent-green) !important;
+    color: #1e1e2e;
+}
+
+.badge.bg-info {
+    background-color: var(--accent-teal) !important;
+    color: #1e1e2e;
+}
+
+/* ====== Alerts ====== */
+.alert-danger {
+    background-color: rgba(243, 139, 168, 0.12);
+    border-color: rgba(243, 139, 168, 0.3);
+    color: var(--accent-red);
+}
+
+.alert-warning {
+    background-color: rgba(249, 226, 175, 0.10);
+    border-color: rgba(249, 226, 175, 0.25);
+    color: var(--accent-yellow);
+}
+
+.alert-success {
+    background-color: rgba(166, 227, 161, 0.12);
+    border-color: rgba(166, 227, 161, 0.3);
+    color: var(--accent-green);
+}
+
+.alert-info {
+    background-color: rgba(137, 180, 250, 0.12);
+    border-color: rgba(137, 180, 250, 0.3);
+    color: var(--accent-blue);
+}
+
+/* ====== Modals ====== */
+.modal-content {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    border-bottom-color: var(--border-color);
+}
+
+.modal-footer {
+    border-top-color: var(--border-color);
+}
+
+.btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* ====== Footer ====== */
+footer {
+    font-size: 0.85rem;
+    background-color: var(--bg-navbar);
+    border-top-color: var(--border-color) !important;
+    color: var(--text-muted) !important;
+}
+
+/* ====== Dropdown ====== */
+.dropdown-menu {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
+    box-shadow: 0 4px 16px var(--shadow-color);
+}
+
+.dropdown-item {
+    color: var(--text-primary);
+}
+
+.dropdown-item:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.dropdown-divider {
+    border-top-color: var(--border-color);
+}
+
+/* ====== Scrollbar ====== */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* ====== Misc ====== */
+.border-top {
+    border-top-color: var(--border-color) !important;
+}
+
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+a {
+    color: var(--accent-blue);
+}
+
+a:hover {
+    color: #7ba8f0;
+}
+
+hr {
+    border-color: var(--border-color);
+}
+
+/* Movement modal submit button default */
+#mvSubmitBtn {
+    min-width: 130px;
+}
+
+/* ====== Login Page ====== */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0f0f1a 0%, #1e1e2e 50%, #181825 100%);
+}
+
+.login-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.login-card .login-logo {
+    font-size: 3rem;
+    color: var(--accent-blue);
+    margin-bottom: 0.5rem;
+}
+
+.login-card h2 {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.login-card .login-subtitle {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+
+.login-card .form-control {
+    padding: 0.65rem 1rem;
+    font-size: 0.95rem;
+}
+
+.login-card .btn-primary {
+    padding: 0.65rem;
+    font-size: 1rem;
+}
+
+/* ====== Pagination ====== */
+.page-link {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.page-link:hover {
+    background-color: var(--hover-bg);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.page-item.active .page-link {
+    background-color: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #1e1e2e;
+}
+
+/* ====== User Menu ====== */
+.user-menu .btn {
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.9rem;
+}
+
+.user-menu .btn:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+/* ====== Admin Page ====== */
+.admin-user-table .badge {
+    font-size: 0.78rem;
+}
