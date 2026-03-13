@@ -259,6 +259,16 @@ thead.table-dark th {
     font-weight: 600;
 }
 
+.btn-outline-primary {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--accent-blue);
+    color: #1e1e2e;
+}
+
 .btn-outline-secondary {
     border-color: var(--border-color);
     color: var(--text-secondary);
@@ -268,6 +278,26 @@ thead.table-dark th {
     background-color: var(--hover-bg);
     border-color: var(--accent-blue);
     color: var(--text-primary);
+}
+
+.btn-outline-success {
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+}
+
+.btn-outline-success:hover {
+    background-color: var(--accent-green);
+    color: #1e1e2e;
+}
+
+.btn-outline-danger {
+    border-color: var(--accent-red);
+    color: var(--accent-red);
+}
+
+.btn-outline-danger:hover {
+    background-color: var(--accent-red);
+    color: #1e1e2e;
 }
 
 .btn-outline-light {
@@ -303,6 +333,11 @@ thead.table-dark th {
 .badge.bg-info {
     background-color: var(--accent-teal) !important;
     color: #1e1e2e;
+}
+
+.badge.bg-secondary {
+    background-color: var(--bg-card-header) !important;
+    color: var(--text-secondary);
 }
 
 /* ====== Alerts ====== */
@@ -423,53 +458,6 @@ hr {
     min-width: 130px;
 }
 
-/* ====== Login Page ====== */
-.login-container {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #0f0f1a 0%, #1e1e2e 50%, #181825 100%);
-}
-
-.login-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 1rem;
-    padding: 2.5rem;
-    width: 100%;
-    max-width: 420px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
-
-.login-card .login-logo {
-    font-size: 3rem;
-    color: var(--accent-blue);
-    margin-bottom: 0.5rem;
-}
-
-.login-card h2 {
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 0.25rem;
-}
-
-.login-card .login-subtitle {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    margin-bottom: 1.5rem;
-}
-
-.login-card .form-control {
-    padding: 0.65rem 1rem;
-    font-size: 0.95rem;
-}
-
-.login-card .btn-primary {
-    padding: 0.65rem;
-    font-size: 1rem;
-}
-
 /* ====== Pagination ====== */
 .page-link {
     background-color: var(--bg-card);
@@ -489,21 +477,9 @@ hr {
     color: #1e1e2e;
 }
 
-/* ====== User Menu ====== */
-.user-menu .btn {
-    color: var(--text-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 0.3rem 0.75rem;
-    font-size: 0.9rem;
-}
-
-.user-menu .btn:hover {
-    background-color: var(--hover-bg);
-    color: var(--text-primary);
-}
-
-/* ====== Admin Page ====== */
-.admin-user-table .badge {
-    font-size: 0.78rem;
+/* ====== Table Light header override ====== */
+.table-light {
+    --bs-table-bg: var(--bg-card-header) !important;
+    --bs-table-color: var(--text-secondary) !important;
+    --bs-table-border-color: var(--border-color) !important;
 }

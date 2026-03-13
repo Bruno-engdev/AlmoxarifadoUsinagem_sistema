@@ -7,7 +7,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Tool, ToolType, ToolParameter, Employee
+from app.models import Tool, ToolType, ToolParameter, Employee, Machine
 from app.services.movements import register_movement
 from app.services.forecasting import predict_days_until_min_stock
 
@@ -38,6 +38,7 @@ def tools_list(
         tools_with_pred.append({"tool": tool, "days_remaining": days})
 
     employees = db.query(Employee).order_by(Employee.name).all()
+    machines = db.query(Machine).order_by(Machine.name).all()
 
     return request.app.state.templates.TemplateResponse(
         "tools/index.html",
@@ -45,6 +46,7 @@ def tools_list(
             "request": request,
             "tools": tools_with_pred,
             "employees": employees,
+            "machines": machines,
             "search": search,
         },
     )
@@ -106,13 +108,23 @@ async def tool_movement(
     """Handle Add Stock (IN) or Remove Stock (OUT) via form submission."""
     form = await request.form()
     tool_id = int(form.get("tool_id", 0))
-    employee_id = int(form.get("employee_id", 0))
     movement_type = form.get("movement_type", "IN").upper()
     quantity = int(form.get("quantity", 0))
     notes = form.get("notes", "")
+    category = form.get("category", "EMPRESTIMO").upper()
+
+    employee_id = None
+    machine_id = None
+    if category == "REPOSICAO" and movement_type == "OUT":
+        machine_id = int(form.get("machine_id", 0)) or None
+    else:
+        employee_id = int(form.get("employee_id", 0)) or None
 
     try:
-        register_movement(db, tool_id, employee_id, movement_type, quantity, notes)
+        register_movement(
+            db, tool_id, employee_id, movement_type, quantity, notes,
+            category=category, machine_id=machine_id,
+        )
     except ValueError:
         pass  # Silently redirect – in production add flash messages
 

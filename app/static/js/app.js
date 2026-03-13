@@ -1,14 +1,6 @@
 /* ============================================================
-   Tool Crib – Custom JavaScript (Dark Theme)
+   Tool Crib – Custom JavaScript
    ============================================================ */
-
-// Chart.js dark theme defaults
-if (typeof Chart !== 'undefined') {
-    Chart.defaults.color = '#cdd6f4';
-    Chart.defaults.borderColor = '#3b3b53';
-    Chart.defaults.plugins.legend.labels.color = '#cdd6f4';
-    Chart.defaults.scale = Chart.defaults.scale || {};
-}
 
 // Auto-dismiss Bootstrap alerts after 8 seconds
 document.addEventListener('DOMContentLoaded', function () {

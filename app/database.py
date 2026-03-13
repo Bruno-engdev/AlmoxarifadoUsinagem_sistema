@@ -31,16 +31,15 @@ def get_db():
 
 def init_db():
     """Create all tables and seed initial data if needed."""
-    from app.models import ToolType, Tool, Employee, User  # noqa: F401
+    from app.models import ToolType, Tool, Employee, Machine  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
     _seed_defaults()
-    _seed_admin()
 
 
 def _seed_defaults():
-    """Insert default tool types if the table is empty."""
-    from app.models import ToolType
+    """Insert default tool types and machines if the tables are empty."""
+    from app.models import ToolType, Machine
 
     db = SessionLocal()
     try:
@@ -56,20 +55,28 @@ def _seed_defaults():
             for name in defaults:
                 db.add(ToolType(name=name))
             db.commit()
-    finally:
-        db.close()
 
-
-def _seed_admin():
-    """Create a default admin user if no users exist."""
-    from app.models import User
-    import hashlib
-
-    db = SessionLocal()
-    try:
-        if db.query(User).count() == 0:
-            pw_hash = hashlib.sha256("admin".encode()).hexdigest()
-            db.add(User(username="admin", password_hash=pw_hash, is_admin=True))
+        if db.query(Machine).count() == 0:
+            machines = [
+                "Fresadora 1",
+                "Fresadora 2",
+                "Fresadora 3",
+                "Torno Convencional 1",
+                "Torno Convencional 2",
+                "Torno Convencional 3",
+                "Eletroerosão a Fio",
+                "Ajustagem",
+                "Torno CNC 1",
+                "Torno CNC 2",
+                "Centro de Torneamento",
+                "Centro de Usinagem 1",
+                "Centro de Usinagem 2",
+                "Centro de Usinagem 3",
+                "Centro de Usinagem 4",
+                "Portal",
+            ]
+            for name in machines:
+                db.add(Machine(name=name))
             db.commit()
     finally:
         db.close()

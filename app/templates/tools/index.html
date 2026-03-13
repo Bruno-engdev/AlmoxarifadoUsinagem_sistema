@@ -46,7 +46,7 @@
                 <tbody>
                 {% for item in tools %}
                 {% set t = item.tool %}
-                    <tr class="{{ t.status_class }}">
+                    <tr>
                         <td>{{ t.id }}</td>
                         <td>
                             <a href="/tools/{{ t.id }}" class="text-decoration-none fw-semibold">
@@ -79,20 +79,28 @@
                             {% endif %}
                         </td>
                         <td class="text-center text-nowrap">
-                            <!-- Add Stock -->
+                            <!-- Entrada -->
                             <button class="btn btn-sm btn-outline-success"
                                     data-bs-toggle="modal"
                                     data-bs-target="#movementModal"
-                                    onclick="prepareMovement({{ t.id }}, '{{ t.name }}', 'IN')">
+                                    onclick="prepareMovement({{ t.id }}, '{{ t.name }}', 'IN', 'REPOSICAO')">
                                 <i class="bi bi-plus-lg"></i> Entrada
                             </button>
-                            <!-- Remove Stock -->
+                            <!-- Saída (Reposição) -->
                             <button class="btn btn-sm btn-outline-danger"
                                     data-bs-toggle="modal"
                                     data-bs-target="#movementModal"
-                                    onclick="prepareMovement({{ t.id }}, '{{ t.name }}', 'OUT')">
+                                    onclick="prepareMovement({{ t.id }}, '{{ t.name }}', 'OUT', 'REPOSICAO')">
                                 <i class="bi bi-dash-lg"></i> Saída
                             </button>
+                            <!-- Emprestar -->
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#movementModal"
+                                    onclick="prepareMovement({{ t.id }}, '{{ t.name }}', 'OUT', 'EMPRESTIMO')">
+                                <i class="bi bi-person-badge"></i> Emprestar
+                            </button>
+                            
                         </td>
                     </tr>
                 {% endfor %}
@@ -120,18 +128,29 @@
             <div class="modal-body">
                 <input type="hidden" name="tool_id" id="mvToolId">
                 <input type="hidden" name="movement_type" id="mvType">
+                <input type="hidden" name="category" id="mvCategory">
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Ferramenta</label>
                     <input type="text" class="form-control" id="mvToolName" readonly>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3" id="mvEmployeeGroup">
                     <label for="mvEmployee" class="form-label fw-semibold">Funcionário *</label>
-                    <select name="employee_id" id="mvEmployee" class="form-select" required>
+                    <select name="employee_id" id="mvEmployee" class="form-select">
                         <option value="">Selecione o funcionário...</option>
                         {% for e in employees %}
                         <option value="{{ e.id }}">{{ e.name }} ({{ e.department }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3 d-none" id="mvMachineGroup">
+                    <label for="mvMachine" class="form-label fw-semibold">Máquina *</label>
+                    <select name="machine_id" id="mvMachine" class="form-select">
+                        <option value="">Selecione a máquina...</option>
+                        {% for m in machines %}
+                        <option value="{{ m.id }}">{{ m.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -158,28 +177,53 @@
 
 {% block scripts %}
 <script>
-function prepareMovement(toolId, toolName, type) {
+function prepareMovement(toolId, toolName, type, category) {
     document.getElementById('mvToolId').value = toolId;
     document.getElementById('mvToolName').value = toolName;
     document.getElementById('mvType').value = type;
+    document.getElementById('mvCategory').value = category;
 
     const title = document.getElementById('movementModalTitle');
     const btn = document.getElementById('mvSubmitBtn');
+    const empGroup = document.getElementById('mvEmployeeGroup');
+    const machGroup = document.getElementById('mvMachineGroup');
+    const empSelect = document.getElementById('mvEmployee');
+    const machSelect = document.getElementById('mvMachine');
+
+    // Reset fields
+    empSelect.value = '';
+    machSelect.value = '';
+    document.getElementById('mvQty').value = '';
+    document.getElementById('mvNotes').value = '';
 
     if (type === 'IN') {
+        // Entrada: pede funcionário, categoria REPOSICAO
         title.textContent = 'Entrada de Estoque – ' + toolName;
         btn.className = 'btn btn-success';
         btn.textContent = 'Adicionar Estoque';
+        empGroup.classList.remove('d-none');
+        machGroup.classList.add('d-none');
+        empSelect.required = true;
+        machSelect.required = false;
+    } else if (category === 'EMPRESTIMO') {
+        // Emprestar: pede funcionário
+        title.textContent = 'Empréstimo – ' + toolName;
+        btn.className = 'btn btn-secondary';
+        btn.textContent = 'Confirmar Empréstimo';
+        empGroup.classList.remove('d-none');
+        machGroup.classList.add('d-none');
+        empSelect.required = true;
+        machSelect.required = false;
     } else {
+        // Saída (Reposição): pede máquina
         title.textContent = 'Saída de Estoque – ' + toolName;
         btn.className = 'btn btn-danger';
         btn.textContent = 'Retirar Estoque';
+        empGroup.classList.add('d-none');
+        machGroup.classList.remove('d-none');
+        empSelect.required = false;
+        machSelect.required = true;
     }
-
-    // Reset form fields
-    document.getElementById('mvEmployee').value = '';
-    document.getElementById('mvQty').value = '';
-    document.getElementById('mvNotes').value = '';
 }
 </script>
 {% endblock %}

@@ -19,7 +19,7 @@
 <body>
 
 <!-- ====== Navbar ====== -->
-<nav class="navbar navbar-expand-lg shadow-sm">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="/">
             <img src="/static/images/DHALMARLOGO.png" alt="Logo" class="me-2" style="width: 220px; height: 30px;">
@@ -51,31 +51,11 @@
                     <a class="nav-link {% if active_page == 'tool_types' %}active{% endif %}"
                        href="/tool-types"><i class="bi bi-tags me-1"></i>Tipos de Ferramenta</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'machines' %}active{% endif %}"
+                       href="/machines"><i class="bi bi-gear me-1"></i>Máquinas</a>
+                </li>
             </ul>
-
-            <!-- User Menu -->
-            <div class="user-menu dropdown">
-                <button class="btn dropdown-toggle d-flex align-items-center" type="button"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-person-circle me-1"></i>
-                    {{ request.state.current_user.username if request.state.current_user else "Usuário" }}
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    {% if request.state.current_user and request.state.current_user.is_admin %}
-                    <li>
-                        <a class="dropdown-item" href="/auth/admin">
-                            <i class="bi bi-gear me-2"></i>Gerenciar Usuários
-                        </a>
-                    </li>
-                    <li><hr class="dropdown-divider"></li>
-                    {% endif %}
-                    <li>
-                        <a class="dropdown-item" href="/auth/logout">
-                            <i class="bi bi-box-arrow-right me-2"></i>Sair
-                        </a>
-                    </li>
-                </ul>
-            </div>
         </div>
     </div>
 </nav>
@@ -86,7 +66,7 @@
 </main>
 
 <!-- ====== Footer ====== -->
-<footer class="text-center py-3 border-top mt-auto small">
+<footer class="text-center text-muted py-3 border-top mt-auto small">
     Sistema de Almoxarifado de Ferramentas &copy; 2026
 </footer>
 

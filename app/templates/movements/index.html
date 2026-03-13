@@ -6,10 +6,23 @@
 {% block content %}
 <h2 class="mb-4"><i class="bi bi-arrow-left-right me-2"></i>Registro de Movimentações</h2>
 
+<!-- Category Toggle -->
+<div class="btn-group mb-4" role="group">
+    <a href="/movements?category=EMPRESTIMO&tool_id={{ selected_tool_id }}&sort={{ sort }}"
+       class="btn {% if category == 'EMPRESTIMO' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        <i class="bi bi-person-badge me-1"></i> Empréstimos
+    </a>
+    <a href="/movements?category=REPOSICAO&tool_id={{ selected_tool_id }}&sort={{ sort }}"
+       class="btn {% if category == 'REPOSICAO' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        <i class="bi bi-gear me-1"></i> Reposições
+    </a>
+</div>
+
 <!-- Filters -->
 <div class="card shadow-sm mb-4">
     <div class="card-body">
         <form method="GET" action="/movements" class="row g-3 align-items-end">
+            <input type="hidden" name="category" value="{{ category }}">
             <div class="col-md-4">
                 <label class="form-label fw-semibold">Filtrar por Ferramenta</label>
                 <select name="tool_id" class="form-select">
@@ -32,7 +45,7 @@
                 <button class="btn btn-primary" type="submit">
                     <i class="bi bi-funnel me-1"></i> Aplicar
                 </button>
-                <a href="/movements" class="btn btn-outline-secondary">Limpar</a>
+                <a href="/movements?category={{ category }}" class="btn btn-outline-secondary">Limpar</a>
             </div>
         </form>
     </div>
@@ -45,11 +58,20 @@
             <table class="table table-hover table-striped mb-0 align-middle">
                 <thead class="table-dark">
                     <tr>
-                        <th>Data</th>
+                        <th>Data Retirada</th>
                         <th>Ferramenta</th>
-                        <th>Funcionário</th>
+                        {% if category == 'EMPRESTIMO' %}
+                            <th>Funcionário</th>
+                        {% else %}
+                            <th>Máquina</th>
+                        {% endif %}
                         <th class="text-center">Tipo</th>
                         <th class="text-center">Quantidade</th>
+                        {% if category == 'EMPRESTIMO' %}
+                            <th class="text-center">Status</th>
+                            <th>Data Devolução</th>
+                            <th class="text-center">Ação</th>
+                        {% endif %}
                         <th>Observações</th>
                     </tr>
                 </thead>
@@ -62,7 +84,11 @@
                                 {{ m.tool.name }}
                             </a>
                         </td>
-                        <td>{{ m.employee.name }}</td>
+                        {% if category == 'EMPRESTIMO' %}
+                            <td>{{ m.employee.name if m.employee else "—" }}</td>
+                        {% else %}
+                            <td>{{ m.machine.name if m.machine else "—" }}</td>
+                        {% endif %}
                         <td class="text-center">
                             {% if m.movement_type == "IN" %}
                                 <span class="badge bg-success">ENTRADA</span>
@@ -71,12 +97,42 @@
                             {% endif %}
                         </td>
                         <td class="text-center fw-bold">{{ m.quantity }}</td>
+                        {% if category == 'EMPRESTIMO' %}
+                            <td class="text-center">
+                                {% if m.loan_status == "PENDENTE" %}
+                                    <span class="badge bg-warning text-dark">PENDENTE</span>
+                                {% elif m.loan_status == "ENTREGUE" %}
+                                    <span class="badge bg-success">ENTREGUE</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-nowrap">
+                                {% if m.return_timestamp %}
+                                    {{ m.return_timestamp.strftime('%Y-%m-%d %H:%M') }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if m.loan_status == "PENDENTE" %}
+                                    <form method="POST" action="/movements/{{ m.id }}/return" class="d-inline"
+                                          onsubmit="return confirm('Confirmar devolução?')">
+                                        <button class="btn btn-sm btn-outline-success">
+                                            <i class="bi bi-box-arrow-in-left me-1"></i> Devolver
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        {% endif %}
                         <td>{{ m.notes or "—" }}</td>
                     </tr>
                 {% endfor %}
                 {% if not movements %}
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">
+                        <td colspan="{% if category == 'EMPRESTIMO' %}9{% else %}6{% endif %}" class="text-center text-muted py-4">
                             Nenhuma movimentação registrada.
                         </td>
                     </tr>

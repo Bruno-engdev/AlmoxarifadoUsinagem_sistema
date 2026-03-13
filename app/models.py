@@ -4,7 +4,7 @@ SQLAlchemy ORM models for the Tool Crib system.
 
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, Text, Float, Boolean,
+    Column, Integer, String, Text, Float,
     ForeignKey, DateTime, Enum as SAEnum,
 )
 from sqlalchemy.orm import relationship
@@ -22,21 +22,31 @@ class MovementType(str, enum.Enum):
     OUT = "OUT"
 
 
+class MovementCategory(str, enum.Enum):
+    EMPRESTIMO = "EMPRESTIMO"
+    REPOSICAO = "REPOSICAO"
+
+
+class LoanStatus(str, enum.Enum):
+    PENDENTE = "PENDENTE"
+    ENTREGUE = "ENTREGUE"
+
+
 # ---------------------------------------------------------------------------
 # Models
 # ---------------------------------------------------------------------------
 
-class User(Base):
-    """System users for authentication."""
-    __tablename__ = "users"
+class Machine(Base):
+    """Machines in the machining sector."""
+    __tablename__ = "machines"
 
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String(50), nullable=False, unique=True)
-    password_hash = Column(String(255), nullable=False)
-    is_admin = Column(Boolean, default=False)
+    name = Column(String(200), nullable=False, unique=True)
+
+    movements = relationship("Movement", back_populates="machine")
 
     def __repr__(self):
-        return f"<User {self.username}>"
+        return f"<Machine {self.name}>"
 
 
 class ToolType(Base):
@@ -128,14 +138,19 @@ class Movement(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     tool_id = Column(Integer, ForeignKey("tools.id"), nullable=False)
-    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
+    machine_id = Column(Integer, ForeignKey("machines.id"), nullable=True)
     movement_type = Column(String(3), nullable=False)   # "IN" or "OUT"
+    category = Column(String(20), nullable=False, default="EMPRESTIMO")  # EMPRESTIMO or REPOSICAO
     quantity = Column(Integer, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
+    return_timestamp = Column(DateTime, nullable=True)
+    loan_status = Column(String(20), nullable=True)  # PENDENTE or ENTREGUE
     notes = Column(Text, default="")
 
     tool = relationship("Tool", back_populates="movements")
     employee = relationship("Employee", back_populates="movements")
+    machine = relationship("Machine", back_populates="movements")
 
     def __repr__(self):
         return f"<Movement {self.movement_type} qty={self.quantity}>"
