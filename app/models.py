@@ -17,6 +17,11 @@ from app.database import Base
 # Enums
 # ---------------------------------------------------------------------------
 
+class UserRole(str, enum.Enum):
+    ADMIN = "ADMIN"
+    USER = "USER"
+
+
 class MovementType(str, enum.Enum):
     IN = "IN"
     OUT = "OUT"
@@ -35,6 +40,22 @@ class LoanStatus(str, enum.Enum):
 # ---------------------------------------------------------------------------
 # Models
 # ---------------------------------------------------------------------------
+
+class User(Base):
+    """System users with role-based access."""
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(100), nullable=False, unique=True)
+    full_name = Column(String(200), nullable=False, default="")
+    password_hash = Column(String(255), nullable=False)
+    role = Column(String(10), nullable=False, default="USER")  # ADMIN or USER
+    active = Column(Integer, default=1)  # 1=active, 0=disabled
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<User {self.username}>"
+
 
 class Machine(Base):
     """Machines in the machining sector."""
@@ -74,6 +95,9 @@ class Tool(Base):
     min_stock = Column(Integer, default=0)
     max_stock = Column(Integer, default=0)
     current_stock = Column(Integer, default=0)
+    unit_cost = Column(Float, default=0.0)           # Cost per unit (R$)
+    is_critical = Column(Integer, default=0)          # 1 = critical for production
+    avg_lifespan_hours = Column(Float, default=0.0)   # Average life in hours before replacement
 
     tool_type = relationship("ToolType", back_populates="tools")
     parameters = relationship("ToolParameter", back_populates="tool", cascade="all, delete-orphan")

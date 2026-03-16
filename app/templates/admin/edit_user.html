@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Editar Usuário – Almoxarifado{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="/admin/users" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Voltar
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-pencil me-1"></i>Editar Usuário — {{ edit_user.username }}
+            </div>
+            <div class="card-body">
+                <form method="post" action="/admin/users/{{ edit_user.id }}/edit">
+                    <div class="mb-3">
+                        <label class="form-label">Usuário</label>
+                        <input type="text" class="form-control" value="{{ edit_user.username }}" disabled>
+                        <div class="form-text text-muted">O nome de login não pode ser alterado.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="full_name" class="form-label">Nome Completo</label>
+                        <input type="text" class="form-control" id="full_name" name="full_name"
+                               value="{{ edit_user.full_name or '' }}" placeholder="Nome completo">
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Perfil</label>
+                        <select class="form-select" id="role" name="role">
+                            <option value="USER" {% if edit_user.role == 'USER' %}selected{% endif %}>Usuário</option>
+                            <option value="ADMIN" {% if edit_user.role == 'ADMIN' %}selected{% endif %}>Administrador</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="active" class="form-label">Status</label>
+                        <select class="form-select" id="active" name="active">
+                            <option value="1" {% if edit_user.active %}selected{% endif %}>Ativo</option>
+                            <option value="0" {% if not edit_user.active %}selected{% endif %}>Inativo</option>
+                        </select>
+                    </div>
+                    <hr>
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">Nova Senha</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password"
+                               placeholder="Deixe em branco para manter a senha atual">
+                        <div class="form-text text-muted">Preencha apenas se deseja alterar a senha.</div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="/admin/users" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

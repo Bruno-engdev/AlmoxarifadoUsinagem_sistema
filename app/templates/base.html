@@ -56,6 +56,37 @@
                        href="/machines"><i class="bi bi-gear me-1"></i>Máquinas</a>
                 </li>
             </ul>
+
+            <!-- User menu -->
+            {% if request.state.current_user %}
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#"
+                       id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle me-1"></i>
+                        {{ request.state.current_user.full_name or request.state.current_user.username }}
+                        {% if request.state.current_user.role == 'ADMIN' %}
+                        <span class="badge bg-info ms-1" style="font-size: 0.65rem;">Admin</span>
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        {% if request.state.current_user.role == 'ADMIN' %}
+                        <li>
+                            <a class="dropdown-item" href="/admin/users">
+                                <i class="bi bi-shield-lock me-2"></i>Gerenciar Usuários
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% endif %}
+                        <li>
+                            <a class="dropdown-item text-danger" href="/logout">
+                                <i class="bi bi-box-arrow-right me-2"></i>Sair
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+            {% endif %}
         </div>
     </div>
 </nav>

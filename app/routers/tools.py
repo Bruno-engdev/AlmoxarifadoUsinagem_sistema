@@ -8,10 +8,11 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Tool, ToolType, ToolParameter, Employee, Machine
+from app.auth import require_login
 from app.services.movements import register_movement
 from app.services.forecasting import predict_days_until_min_stock
 
-router = APIRouter(prefix="/tools", tags=["tools"])
+router = APIRouter(prefix="/tools", tags=["tools"], dependencies=[Depends(require_login)])
 
 
 @router.get("/")

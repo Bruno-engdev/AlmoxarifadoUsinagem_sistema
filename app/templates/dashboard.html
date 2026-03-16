@@ -4,78 +4,180 @@
 {% block title %}Painel – Almoxarifado de Ferramentas{% endblock %}
 
 {% block content %}
-<h2 class="mb-4"><i class="bi bi-speedometer2 me-2"></i>Painel</h2>
+<h2 class="mb-4 text-center"></i>Indicadores de Ferramentas e Produção</h2>
 
-<!-- ====== Summary Cards ====== -->
+<!-- ================================================================ -->
+<!-- FILTER BAR                                                       -->
+<!-- ================================================================ -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body py-3">
+        <form method="get" action="/" id="filterForm" class="row g-2 align-items-end">
+            <div class="col-lg col-md-6">
+                <label class="form-label mb-1 small">Data Início</label>
+                <input type="date" class="form-control form-control-sm"
+                       name="date_from" value="{{ f_date_from }}">
+            </div>
+            <div class="col-lg col-md-6">
+                <label class="form-label mb-1 small">Data Fim</label>
+                <input type="date" class="form-control form-control-sm"
+                       name="date_to" value="{{ f_date_to }}">
+            </div>
+            <div class="col-lg col-md-6">
+                <label class="form-label mb-1 small">Tipo de Ferramenta</label>
+                <select class="form-select form-select-sm" name="tool_type_id">
+                    <option value="0">Todos</option>
+                    {% for tt in tool_types %}
+                    <option value="{{ tt.id }}"
+                        {% if tt.id == f_tool_type_id %}selected{% endif %}>{{ tt.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg col-md-6">
+                <label class="form-label mb-1 small">Modelo / Nome</label>
+                <input type="text" class="form-control form-control-sm"
+                       name="tool_name" value="{{ f_tool_name }}"
+                       placeholder="Buscar por nome...">
+            </div>
+            <div class="col-auto d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-funnel me-1"></i>Filtrar
+                </button>
+                <a href="/" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-x-lg me-1"></i>Limpar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- KPI CARDS                                                        -->
+<!-- ================================================================ -->
 <div class="row g-3 mb-4">
-    <div class="col-md-3 col-sm-6">
-        <div class="card text-bg-primary h-100 shadow-sm">
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-start border-4 h-100 shadow-sm">
             <div class="card-body d-flex align-items-center">
                 <i class="bi bi-wrench display-5 me-3 opacity-75"></i>
                 <div>
-                    <h3 class="mb-0">{{ total_tools }}</h3>
+                    <h3 class="mb-0" id="kpi-tools">{{ total_tools }}</h3>
                     <small>Total de Ferramentas</small>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="card text-bg-danger h-100 shadow-sm">
-            <div class="card-body d-flex align-items-center">
-                <i class="bi bi-exclamation-triangle display-5 me-3 opacity-75"></i>
-                <div>
-                    <h3 class="mb-0">{{ tools_below_count }}</h3>
-                    <small>Abaixo do Estoque Mín.</small>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="card text-bg-info h-100 shadow-sm">
-            <div class="card-body d-flex align-items-center">
-                <i class="bi bi-arrow-left-right display-5 me-3 opacity-75"></i>
-                <div>
-                    <h3 class="mb-0">{{ movements_month }}</h3>
-                    <small>Movimentações no Mês</small>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="card text-bg-warning h-100 shadow-sm">
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-start border-4 h-100 shadow-sm">
             <div class="card-body d-flex align-items-center">
                 <i class="bi bi-graph-down display-5 me-3 opacity-75"></i>
                 <div>
-                    <h3 class="mb-0">{{ consumption_month }}</h3>
-                    <small>Consumo no Mês</small>
+                    <h3 class="mb-0" id="kpi-consumption">{{ consumption_period }}</h3>
+                    <small>Consumo no Período</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-start border-4 h-100 shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <i class="bi bi-arrow-left-right display-5 me-3 opacity-75"></i>
+                <div>
+                    <h3 class="mb-0" id="kpi-movements">{{ movements_period }}</h3>
+                    <small>Movimentações no Período</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-start border-4 h-100 shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle display-5 me-3 opacity-75"></i>
+                <div>
+                    <h3 class="mb-0" id="kpi-below">{{ tools_below_count }}</h3>
+                    <small>Abaixo do Estoque Mín.</small>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ====== Alerts for tools needing replenishment ====== -->
+<!-- ================================================================ -->
+<!-- STRATEGIC KPI CARDS                                              -->
+<!-- ================================================================ -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-start border-4 h-100 shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <i class="bi bi-currency-dollar display-5 me-3 text-success opacity-75"></i>
+                <div>
+                    <h4 class="mb-0" id="kpi-stock-value">R$ {{ "%.2f"|format(total_stock_value) }}</h4>
+                    <small class="text-muted">Valor Total em Estoque</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-start border-4 h-100 shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <i class="bi bi-piggy-bank display-5 me-3 text-warning opacity-75"></i>
+                <div>
+                    <h4 class="mb-0" id="kpi-capital-idle">R$ {{ "%.2f"|format(capital_idle) }}</h4>
+                    <small class="text-muted">Capital Parado (Ociosas)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-start border-4 h-100 shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <i class="bi bi-shield-check display-5 me-3 text-info opacity-75"></i>
+                <div>
+                    <h4 class="mb-0" id="kpi-critical">{{ critical_avail.pct }}%</h4>
+                    <small class="text-muted">Disp. Ferramentas Críticas</small>
+                    <div class="text-muted small">{{ critical_avail.ok }} / {{ critical_avail.total }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-start border-4 h-100 shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <i class="bi bi-clock-history display-5 me-3 text-primary opacity-75"></i>
+                <div>
+                    <h4 class="mb-0" id="kpi-lifespan">{{ avg_lifespan }}h</h4>
+                    <small class="text-muted">Vida Útil Média</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- ALERTS                                                           -->
+<!-- ================================================================ -->
 {% if tools_below %}
-<div class="alert alert-danger d-flex align-items-center mb-4" role="alert">
-    <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
+<div class="alert alert-danger d-flex align-items-start mb-4" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2 fs-4 mt-1"></i>
     <div>
         <strong>{{ tools_below_count }} ferramenta(s) abaixo do estoque mínimo!</strong>
         <ul class="mb-0 mt-1">
-        {% for t in tools_below %}
+        {% for t in tools_below[:5] %}
             <li>{{ t.name }} – Estoque: {{ t.current_stock }} / Mín: {{ t.min_stock }}</li>
         {% endfor %}
+        {% if tools_below|length > 5 %}
+            <li class="text-muted">… e mais {{ tools_below|length - 5 }}</li>
+        {% endif %}
         </ul>
     </div>
 </div>
 {% endif %}
 
 {% if approaching %}
-<div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
-    <i class="bi bi-exclamation-circle-fill me-2 fs-4"></i>
+<div class="alert alert-warning d-flex align-items-start mb-4" role="alert">
+    <i class="bi bi-exclamation-circle-fill me-2 fs-4 mt-1"></i>
     <div>
         <strong>{{ approaching|length }} ferramenta(s) próxima(s) do estoque mínimo</strong>
         <ul class="mb-0 mt-1">
-        {% for t in approaching %}
+        {% for t in approaching[:5] %}
             <li>{{ t.name }} – Estoque: {{ t.current_stock }} / Mín: {{ t.min_stock }}</li>
         {% endfor %}
         </ul>
@@ -83,9 +185,10 @@
 </div>
 {% endif %}
 
-<!-- ====== Charts Row ====== -->
+<!-- ================================================================ -->
+<!-- CHARTS – Row 1: Consumption + Entries vs Exits                   -->
+<!-- ================================================================ -->
 <div class="row g-4 mb-4">
-    <!-- Monthly Consumption -->
     <div class="col-lg-6">
         <div class="card shadow-sm h-100">
             <div class="card-header"><i class="bi bi-bar-chart me-1"></i> Consumo Mensal</div>
@@ -94,7 +197,20 @@
             </div>
         </div>
     </div>
-    <!-- Top 10 Most Consumed -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header"><i class="bi bi-arrow-down-up me-1"></i> Entradas vs Saídas</div>
+            <div class="card-body">
+                <canvas id="chartInOut"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- CHARTS – Row 2: Top Consumed + Stock by Type                     -->
+<!-- ================================================================ -->
+<div class="row g-4 mb-4">
     <div class="col-lg-6">
         <div class="card shadow-sm h-100">
             <div class="card-header"><i class="bi bi-trophy me-1"></i> Top 10 Ferramentas Mais Consumidas</div>
@@ -103,54 +219,303 @@
             </div>
         </div>
     </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header"><i class="bi bi-pie-chart me-1"></i> Estoque por Tipo de Ferramenta</div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <canvas id="chartStockType" style="max-height:320px;"></canvas>
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- ====== Predictions Table ====== -->
-<div class="card shadow-sm mb-4">
-    <div class="card-header"><i class="bi bi-clock-history me-1"></i> Previsão de Reposição</div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover table-striped mb-0">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Ferramenta</th>
-                        <th>Estoque Atual</th>
-                        <th>Estoque Mín.</th>
-                        <th>Dias Restantes Est.</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                {% for p in predictions %}
-                    <tr class="{% if p.warning %}table-warning{% endif %}{% if p.tool.current_stock < p.tool.min_stock %}table-danger{% endif %}">
-                        <td>{{ p.tool.name }}</td>
-                        <td>{{ p.tool.current_stock }}</td>
-                        <td>{{ p.tool.min_stock }}</td>
-                        <td>
-                            {% if p.days_remaining is none %}
-                                <span class="text-muted">Sem histórico</span>
-                            {% elif p.days_remaining == 0 %}
-                                <span class="badge bg-danger">Agora</span>
-                            {% else %}
-                                {{ p.days_remaining }} dias
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if p.tool.current_stock < p.tool.min_stock %}
-                                <span class="badge bg-danger">CRÍTICO</span>
-                            {% elif p.warning %}
-                                <span class="badge bg-warning text-dark">ATENÇÃO</span>
-                            {% else %}
-                                <span class="badge bg-success">OK</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% endfor %}
-                {% if not predictions %}
-                    <tr><td colspan="5" class="text-center text-muted py-4">Nenhuma ferramenta com estoque mínimo definido</td></tr>
-                {% endif %}
-                </tbody>
-            </table>
+<!-- ================================================================ -->
+<!-- CHART – Monthly Cost                                             -->
+<!-- ================================================================ -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-12">
+        <div class="card shadow-sm h-100">
+            <div class="card-header"><i class="bi bi-cash-stack me-1"></i> Custo Mensal de Consumo (R$)</div>
+            <div class="card-body">
+                <canvas id="chartCost"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- TABLES – Low Stock + Recent Movements                            -->
+<!-- ================================================================ -->
+<div class="row g-4 mb-4">
+    <!-- Low stock table -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-exclamation-triangle me-1"></i> Ferramentas Abaixo do Mínimo</span>
+                <span class="badge bg-danger">{{ tools_below_count }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height:360px; overflow-y:auto;">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-dark sticky-top">
+                            <tr>
+                                <th>Ferramenta</th>
+                                <th class="text-center">Atual</th>
+                                <th class="text-center">Mín.</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for t in tools_below %}
+                            <tr>
+                                <td>{{ t.name }}</td>
+                                <td class="text-center">{{ t.current_stock }}</td>
+                                <td class="text-center">{{ t.min_stock }}</td>
+                                <td class="text-center">
+                                    {% if t.current_stock <= 0 %}
+                                    <span class="badge bg-danger">CRÍTICO</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">BAIXO</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        {% if not tools_below %}
+                            <tr><td colspan="4" class="text-center text-muted py-3">Nenhum item abaixo do mínimo</td></tr>
+                        {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent movements table -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <i class="bi bi-clock-history me-1"></i> Últimas 10 Movimentações
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height:360px; overflow-y:auto;">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-dark sticky-top">
+                            <tr>
+                                <th>Data</th>
+                                <th>Ferramenta</th>
+                                <th class="text-center">Tipo</th>
+                                <th class="text-center">Qtd</th>
+                                <th>Funcionário / Máquina</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for m in recent %}
+                            <tr>
+                                <td class="text-nowrap">{{ m.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>{{ m.tool.name if m.tool else '—' }}</td>
+                                <td class="text-center">
+                                    {% if m.movement_type == 'IN' %}
+                                    <span class="badge bg-success">Entrada</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Saída</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">{{ m.quantity }}</td>
+                                <td>
+                                    {% if m.employee %}{{ m.employee.name }}
+                                    {% elif m.machine %}{{ m.machine.name }}
+                                    {% else %}—{% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        {% if not recent %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">Nenhuma movimentação recente</td></tr>
+                        {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- TABLE – Idle tools + Predictions                                 -->
+<!-- ================================================================ -->
+<div class="row g-4 mb-4">
+    <!-- Idle tools -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-pause-circle me-1"></i> Ferramentas sem Movimentação</span>
+                <form method="get" action="/" class="d-flex align-items-center gap-2 mb-0"
+                      style="max-width:220px;">
+                    <!-- preserve existing filters -->
+                    <input type="hidden" name="date_from" value="{{ f_date_from }}">
+                    <input type="hidden" name="date_to" value="{{ f_date_to }}">
+                    <input type="hidden" name="tool_type_id" value="{{ f_tool_type_id }}">
+                    <input type="hidden" name="tool_name" value="{{ f_tool_name }}">
+                    <input type="number" class="form-control form-control-sm" name="idle_days"
+                           value="{{ f_idle_days }}" min="1" max="365" style="width:80px;"
+                           title="Dias sem movimentação">
+                    <span class="text-muted small text-nowrap">dias</span>
+                    <button type="submit" class="btn btn-outline-primary btn-sm py-0">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </form>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height:320px; overflow-y:auto;">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-dark sticky-top">
+                            <tr>
+                                <th>Ferramenta</th>
+                                <th>Tipo</th>
+                                <th class="text-center">Estoque</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for t in idle_tools %}
+                            <tr>
+                                <td>{{ t.name }}</td>
+                                <td>{{ t.type }}</td>
+                                <td class="text-center">{{ t.current_stock }}</td>
+                            </tr>
+                        {% endfor %}
+                        {% if not idle_tools %}
+                            <tr><td colspan="3" class="text-center text-muted py-3">Todas as ferramentas possuem movimentação recente</td></tr>
+                        {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Predictions -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header"><i class="bi bi-graph-up-arrow me-1"></i> Previsão de Reposição</div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height:320px; overflow-y:auto;">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-dark sticky-top">
+                            <tr>
+                                <th>Ferramenta</th>
+                                <th class="text-center">Atual</th>
+                                <th class="text-center">Mín.</th>
+                                <th class="text-center">Dias Rest.</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for p in predictions %}
+                            <tr class="{% if p.warning %}table-warning{% endif %}{% if p.tool.current_stock < p.tool.min_stock %}table-danger{% endif %}">
+                                <td>{{ p.tool.name }}</td>
+                                <td class="text-center">{{ p.tool.current_stock }}</td>
+                                <td class="text-center">{{ p.tool.min_stock }}</td>
+                                <td class="text-center">
+                                    {% if p.days_remaining is none %}
+                                        <span class="text-muted">—</span>
+                                    {% elif p.days_remaining == 0 %}
+                                        <span class="badge bg-danger">Agora</span>
+                                    {% else %}
+                                        {{ p.days_remaining }}d
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if p.tool.current_stock < p.tool.min_stock %}
+                                        <span class="badge bg-danger">CRÍTICO</span>
+                                    {% elif p.warning %}
+                                        <span class="badge bg-warning text-dark">ATENÇÃO</span>
+                                    {% else %}
+                                        <span class="badge bg-success">OK</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        {% if not predictions %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">Nenhuma ferramenta com estoque mínimo definido</td></tr>
+                        {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- TABLES – High Maintenance + Rarely Used / Obsolete               -->
+<!-- ================================================================ -->
+<div class="row g-4 mb-4">
+    <!-- High maintenance tools -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-tools me-1"></i> Ferramentas com Alto Consumo (6 meses)</span>
+                <span class="badge bg-warning text-dark">{{ high_maint|length }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height:320px; overflow-y:auto;">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-dark sticky-top">
+                            <tr>
+                                <th>Ferramenta</th>
+                                <th class="text-center">Total Consumido</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for t in high_maint %}
+                            <tr>
+                                <td>{{ t.name }}</td>
+                                <td class="text-center">{{ t.total_out }}</td>
+                            </tr>
+                        {% endfor %}
+                        {% if not high_maint %}
+                            <tr><td colspan="2" class="text-center text-muted py-3">Nenhuma ferramenta com alto consumo</td></tr>
+                        {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rarely used / obsolete candidates -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-archive me-1"></i> Ferramentas Raramente Usadas / Obsoletas</span>
+                <span class="badge bg-secondary">{{ rarely_used|length }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height:320px; overflow-y:auto;">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-dark sticky-top">
+                            <tr>
+                                <th>Ferramenta</th>
+                                <th>Tipo</th>
+                                <th class="text-center">Estoque</th>
+                                <th class="text-end">Valor Parado (R$)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for t in rarely_used %}
+                            <tr>
+                                <td>{{ t.name }}</td>
+                                <td>{{ t.type }}</td>
+                                <td class="text-center">{{ t.current_stock }}</td>
+                                <td class="text-end">{{ "%.2f"|format(t.value) }}</td>
+                            </tr>
+                        {% endfor %}
+                        {% if not rarely_used %}
+                            <tr><td colspan="4" class="text-center text-muted py-3">Todas as ferramentas possuem uso recente</td></tr>
+                        {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -158,7 +523,13 @@
 
 {% block scripts %}
 <script>
-// Monthly Consumption Chart
+/* ====== Chart defaults for dark theme ====== */
+Chart.defaults.color = '#a6adc8';
+Chart.defaults.borderColor = 'rgba(59,59,83,0.5)';
+const PALETTE = ['#89b4fa','#a6e3a1','#f38ba8','#f9e2af','#cba6f7',
+                 '#94e2d5','#fab387','#74c7ec','#b4befe','#eba0ac'];
+
+/* ---- Monthly Consumption ---- */
 const ctxMonthly = document.getElementById('chartMonthly');
 if (ctxMonthly) {
     new Chart(ctxMonthly, {
@@ -168,8 +539,8 @@ if (ctxMonthly) {
             datasets: [{
                 label: 'Unidades Consumidas',
                 data: {{ chart_data | tojson }},
-                backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(137,180,250,0.7)',
+                borderColor: '#89b4fa',
                 borderWidth: 1,
                 borderRadius: 4,
             }]
@@ -182,7 +553,41 @@ if (ctxMonthly) {
     });
 }
 
-// Top 10 Chart
+/* ---- Entries vs Exits ---- */
+const ctxIO = document.getElementById('chartInOut');
+if (ctxIO) {
+    new Chart(ctxIO, {
+        type: 'bar',
+        data: {
+            labels: {{ io_labels | tojson }},
+            datasets: [
+                {
+                    label: 'Entradas',
+                    data: {{ io_in | tojson }},
+                    backgroundColor: 'rgba(166,227,161,0.7)',
+                    borderColor: '#a6e3a1',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                },
+                {
+                    label: 'Saídas',
+                    data: {{ io_out | tojson }},
+                    backgroundColor: 'rgba(243,139,168,0.7)',
+                    borderColor: '#f38ba8',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'top' } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
+}
+
+/* ---- Top 10 Most Consumed ---- */
 const ctxTop = document.getElementById('chartTop10');
 if (ctxTop) {
     new Chart(ctxTop, {
@@ -192,10 +597,7 @@ if (ctxTop) {
             datasets: [{
                 label: 'Total Consumido',
                 data: {{ top_data | tojson }},
-                backgroundColor: [
-                    '#ff6384','#36a2eb','#ffce56','#4bc0c0','#9966ff',
-                    '#ff9f40','#c9cbcf','#e7e9ed','#7bc67e','#f67280'
-                ],
+                backgroundColor: PALETTE,
                 borderRadius: 4,
             }]
         },
@@ -207,5 +609,92 @@ if (ctxTop) {
         }
     });
 }
+
+/* ---- Stock by Type (doughnut) ---- */
+const ctxSBT = document.getElementById('chartStockType');
+if (ctxSBT) {
+    new Chart(ctxSBT, {
+        type: 'doughnut',
+        data: {
+            labels: {{ sbt_labels | tojson }},
+            datasets: [{
+                data: {{ sbt_data | tojson }},
+                backgroundColor: PALETTE,
+                borderWidth: 0,
+            }]
+        },
+        options: {
+            responsive: true,
+            cutout: '55%',
+            plugins: {
+                legend: { position: 'right', labels: { boxWidth: 14, padding: 12 } }
+            }
+        }
+    });
+}
+
+/* ---- Monthly Cost (line chart) ---- */
+const ctxCost = document.getElementById('chartCost');
+if (ctxCost) {
+    new Chart(ctxCost, {
+        type: 'line',
+        data: {
+            labels: {{ cost_labels | tojson }},
+            datasets: [{
+                label: 'Custo (R$)',
+                data: {{ cost_data | tojson }},
+                borderColor: '#f9e2af',
+                backgroundColor: 'rgba(249,226,175,0.15)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4,
+                pointBackgroundColor: '#f9e2af',
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: {
+                    callback: v => 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits: 2})
+                } }
+            }
+        }
+    });
+}
+
+/* ====== AJAX dynamic filter (updates KPIs + charts without reload) ====== */
+(function() {
+    const form = document.getElementById('filterForm');
+    if (!form) return;
+
+    // Store chart instances for update
+    const charts = {};
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const params = new URLSearchParams(new FormData(form)).toString();
+        fetch('/api/dashboard?' + params)
+            .then(r => r.json())
+            .then(d => {
+                // Update KPI numbers
+                const kpiMap = {
+                    'kpi-tools': d.total_tools,
+                    'kpi-consumption': d.consumption_period,
+                    'kpi-movements': d.movements_period,
+                    'kpi-below': d.tools_below_count,
+                    'kpi-stock-value': 'R$ ' + Number(d.total_stock_value).toFixed(2),
+                    'kpi-capital-idle': 'R$ ' + Number(d.capital_idle).toFixed(2),
+                    'kpi-critical': d.critical_avail.pct + '%',
+                    'kpi-lifespan': d.avg_lifespan + 'h',
+                };
+                for (const [id, val] of Object.entries(kpiMap)) {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = val;
+                }
+            })
+            .catch(err => console.error('Filter error:', err));
+    });
+})();
 </script>
 {% endblock %}

@@ -8,9 +8,10 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Movement, Tool
+from app.auth import require_login
 from app.services.movements import return_loan
 
-router = APIRouter(prefix="/movements", tags=["movements"])
+router = APIRouter(prefix="/movements", tags=["movements"], dependencies=[Depends(require_login)])
 
 
 @router.get("/")

@@ -8,8 +8,9 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import ToolType
+from app.auth import require_login
 
-router = APIRouter(prefix="/tool-types", tags=["tool_types"])
+router = APIRouter(prefix="/tool-types", tags=["tool_types"], dependencies=[Depends(require_login)])
 
 
 @router.get("/")

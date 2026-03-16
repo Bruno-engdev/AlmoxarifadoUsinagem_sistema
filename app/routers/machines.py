@@ -8,8 +8,9 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Machine
+from app.auth import require_login
 
-router = APIRouter(prefix="/machines", tags=["machines"])
+router = APIRouter(prefix="/machines", tags=["machines"], dependencies=[Depends(require_login)])
 
 
 @router.get("/")

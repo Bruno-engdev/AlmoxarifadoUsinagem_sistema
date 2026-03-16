@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Gerenciar Usuários – Almoxarifado{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Gerenciar Usuários</h4>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+        <i class="bi bi-person-plus me-1"></i>Novo Usuário
+    </button>
+</div>
+
+{% if error %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle me-1"></i>{{ error }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-people me-1"></i>Usuários do Sistema
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Usuário</th>
+                        <th>Nome Completo</th>
+                        <th>Perfil</th>
+                        <th>Status</th>
+                        <th>Criado em</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>
+                            <i class="bi bi-person-circle me-1 text-muted"></i>
+                            {{ user.username }}
+                        </td>
+                        <td>{{ user.full_name or '—' }}</td>
+                        <td>
+                            {% if user.role == 'ADMIN' %}
+                            <span class="badge bg-info"><i class="bi bi-shield-check me-1"></i>Administrador</span>
+                            {% else %}
+                            <span class="badge bg-secondary"><i class="bi bi-person me-1"></i>Usuário</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.active %}
+                            <span class="badge bg-success">Ativo</span>
+                            {% else %}
+                            <span class="badge bg-danger">Inativo</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.created_at.strftime('%d/%m/%Y %H:%M') if user.created_at else '—' }}</td>
+                        <td class="text-center">
+                            <a href="/admin/users/{{ user.id }}/edit" class="btn btn-sm btn-outline-primary me-1"
+                               title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% if user.id != current_user.id %}
+                            <form method="post" action="/admin/users/{{ user.id }}/delete" class="d-inline"
+                                  onsubmit="return confirm('Desativar este usuário?')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Desativar">
+                                    <i class="bi bi-person-x"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="/admin/users/create">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Novo Usuário</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Usuário <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="username" name="username" required
+                               placeholder="Nome de login">
+                    </div>
+                    <div class="mb-3">
+                        <label for="full_name" class="form-label">Nome Completo</label>
+                        <input type="text" class="form-control" id="full_name" name="full_name"
+                               placeholder="Nome completo do usuário">
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Senha <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="password" name="password" required
+                               placeholder="Senha de acesso" minlength="4">
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Perfil</label>
+                        <select class="form-select" id="role" name="role">
+                            <option value="USER">Usuário</option>
+                            <option value="ADMIN">Administrador</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Criar Usuário
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
