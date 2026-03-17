@@ -89,6 +89,7 @@ class Tool(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(200), nullable=False)
+    origin_id = Column(String(100), default="")  # ID de origem (preenchido manualmente)
     tool_type_id = Column(Integer, ForeignKey("tool_types.id"), nullable=False)
     description = Column(Text, default="")
     location = Column(String(10), default="")  # G<n>D<n> e.g. G1D27

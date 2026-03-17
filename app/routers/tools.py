@@ -10,7 +10,6 @@ from app.database import get_db
 from app.models import Tool, ToolType, ToolParameter, Employee, Machine
 from app.auth import require_login
 from app.services.movements import register_movement
-from app.services.forecasting import predict_days_until_min_stock
 
 router = APIRouter(prefix="/tools", tags=["tools"], dependencies=[Depends(require_login)])
 
@@ -21,7 +20,7 @@ def tools_list(
     search: str = Query("", alias="search"),
     db: Session = Depends(get_db),
 ):
-    """Display tools table with search, status highlighting, and predictions."""
+    """Display tools table with search and status highlighting."""
     query = db.query(Tool).join(ToolType)
 
     if search:
@@ -32,12 +31,6 @@ def tools_list(
 
     tools = query.order_by(Tool.name).all()
 
-    # Attach prediction to each tool
-    tools_with_pred = []
-    for tool in tools:
-        days = predict_days_until_min_stock(db, tool)
-        tools_with_pred.append({"tool": tool, "days_remaining": days})
-
     employees = db.query(Employee).order_by(Employee.name).all()
     machines = db.query(Machine).order_by(Machine.name).all()
 
@@ -45,7 +38,7 @@ def tools_list(
         "tools/index.html",
         {
             "request": request,
-            "tools": tools_with_pred,
+            "tools": tools,
             "employees": employees,
             "machines": machines,
             "search": search,
@@ -69,6 +62,7 @@ async def tool_create(
 ):
     form = await request.form()
     name = form.get("name", "")
+    origin_id = form.get("origin_id", "")
     tool_type_id = int(form.get("tool_type_id", 0))
     description = form.get("description", "")
     min_stock = int(form.get("min_stock", 0))
@@ -80,6 +74,7 @@ async def tool_create(
 
     tool = Tool(
         name=name,
+        origin_id=origin_id,
         tool_type_id=tool_type_id,
         description=description,
         location=location,
@@ -138,8 +133,7 @@ def tool_detail(tool_id: int, request: Request, db: Session = Depends(get_db)):
     if not tool:
         return RedirectResponse(url="/tools", status_code=303)
 
-    days = predict_days_until_min_stock(db, tool)
     return request.app.state.templates.TemplateResponse(
         "tools/detail.html",
-        {"request": request, "tool": tool, "days_remaining": days},
+        {"request": request, "tool": tool},
     )

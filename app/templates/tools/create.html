@@ -12,10 +12,15 @@
             <div class="card-body">
                 <form method="POST" action="/tools/create">
                     <div class="row g-3">
-                        <div class="col-md-8">
+                        <div class="col-md-5">
                             <label for="name" class="form-label fw-semibold">Nome da Ferramenta *</label>
                             <input type="text" name="name" id="name" class="form-control"
                                    required placeholder="Ex: Fresa de Topo Metal Duro 10mm">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="origin_id" class="form-label fw-semibold">ID Origem</label>
+                            <input type="text" name="origin_id" id="origin_id" class="form-control"
+                                   placeholder="Ex: FRS-001">
                         </div>
                         <div class="col-md-4">
                             <label for="tool_type_id" class="form-label fw-semibold">Tipo de Ferramenta *</label>

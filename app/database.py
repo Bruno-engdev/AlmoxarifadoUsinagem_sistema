@@ -44,6 +44,7 @@ def _migrate_columns():
         ("tools", "unit_cost",           "REAL DEFAULT 0"),
         ("tools", "is_critical",         "INTEGER DEFAULT 0"),
         ("tools", "avg_lifespan_hours",  "REAL DEFAULT 0"),
+        ("tools", "origin_id",           "TEXT DEFAULT ''"),
     ]
     insp = inspect(engine)
     with engine.begin() as conn:

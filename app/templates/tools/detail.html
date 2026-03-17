@@ -27,6 +27,9 @@
                         <strong>Tipo:</strong> {{ tool.tool_type.name }}
                     </div>
                     <div class="col-md-6">
+                        <strong>ID Origem:</strong> {{ tool.origin_id or "—" }}
+                    </div>
+                    <div class="col-md-6">
                         <strong>Descrição:</strong> {{ tool.description or "—" }}
                     </div>
                     <div class="col-md-4">
@@ -50,18 +53,6 @@
                         </span>
                     </div>
                 </div>
-
-                {% if days_remaining is not none %}
-                <div class="alert {% if days_remaining < 30 %}alert-warning{% else %}alert-info{% endif %}">
-                    <i class="bi bi-clock me-1"></i>
-                    <strong>Dias estimados até o estoque mínimo:</strong>
-                    {% if days_remaining == 0 %}
-                        Já está no mínimo ou abaixo!
-                    {% else %}
-                        {{ days_remaining }} dias
-                    {% endif %}
-                </div>
-                {% endif %}
 
                 <!-- Parameters -->
                 {% if tool.parameters %}

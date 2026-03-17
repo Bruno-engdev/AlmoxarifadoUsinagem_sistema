@@ -40,20 +40,8 @@
                        href="/tools"><i class="bi bi-wrench me-1"></i>Ferramentas</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'employees' %}active{% endif %}"
-                       href="/employees"><i class="bi bi-people me-1"></i>Funcionários</a>
-                </li>
-                <li class="nav-item">
                     <a class="nav-link {% if active_page == 'movements' %}active{% endif %}"
                        href="/movements"><i class="bi bi-arrow-left-right me-1"></i>Movimentações</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'tool_types' %}active{% endif %}"
-                       href="/tool-types"><i class="bi bi-tags me-1"></i>Tipos de Ferramenta</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'machines' %}active{% endif %}"
-                       href="/machines"><i class="bi bi-gear me-1"></i>Máquinas</a>
                 </li>
             </ul>
 
@@ -72,8 +60,25 @@
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                         {% if request.state.current_user.role == 'ADMIN' %}
                         <li>
-                            <a class="dropdown-item" href="/admin/users">
+                            <a class="dropdown-item {% if active_page == 'admin_users' %}fw-bold{% endif %}" href="/admin/users">
                                 <i class="bi bi-shield-lock me-2"></i>Gerenciar Usuários
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li class="dropdown-header"><i class="bi bi-gear me-1"></i>Configurações</li>
+                        <li>
+                            <a class="dropdown-item {% if active_page == 'machines' %}fw-bold{% endif %}" href="/machines">
+                                <i class="bi bi-gear me-2"></i>Máquinas
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item {% if active_page == 'employees' %}fw-bold{% endif %}" href="/employees">
+                                <i class="bi bi-people me-2"></i>Funcionários
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item {% if active_page == 'tool_types' %}fw-bold{% endif %}" href="/tool-types">
+                                <i class="bi bi-tags me-2"></i>Tipos de Ferramenta
                             </a>
                         </li>
                         <li><hr class="dropdown-divider"></li>

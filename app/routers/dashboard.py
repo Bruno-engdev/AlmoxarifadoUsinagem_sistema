@@ -29,7 +29,6 @@ from app.services.analytics import (
     get_monthly_cost,
     get_total_stock_value,
 )
-from app.services.forecasting import get_all_predictions
 
 router = APIRouter(dependencies=[Depends(require_login)])
 
@@ -97,7 +96,6 @@ def dashboard(
     # ---- Tables ----
     idle_tools = get_idle_tools(db, days=idle_days)
     recent = get_recent_movements(db, limit=10)
-    predictions = get_all_predictions(db)
 
     # Approaching minimum
     approaching = [
@@ -144,7 +142,6 @@ def dashboard(
             # Tables
             "idle_tools": idle_tools,
             "recent": recent,
-            "predictions": predictions,
             "approaching": approaching,
             # Strategic KPIs
             "avg_lifespan": avg_lifespan,
