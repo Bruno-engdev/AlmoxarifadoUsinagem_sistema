@@ -391,15 +391,14 @@ def get_rarely_used_tools(db: Session, months: int = 6) -> list[dict]:
 
 
 def get_monthly_cost(db: Session, months: int = 12) -> list[dict]:
-    """Monthly cost of consumed tools (OUT qty × unit_cost)."""
+    """Monthly cost of consumed tools (OUT qty × movement unit_cost)."""
     cutoff = datetime.utcnow() - timedelta(days=months * 30)
     rows = (
         db.query(
             extract("year", Movement.timestamp).label("year"),
             extract("month", Movement.timestamp).label("month"),
-            func.sum(Movement.quantity * Tool.unit_cost).label("cost"),
+            func.sum(Movement.quantity * func.coalesce(Movement.unit_cost, 0)).label("cost"),
         )
-        .join(Tool, Tool.id == Movement.tool_id)
         .filter(Movement.movement_type == "OUT", Movement.timestamp >= cutoff)
         .group_by("year", "month")
         .order_by("year", "month")

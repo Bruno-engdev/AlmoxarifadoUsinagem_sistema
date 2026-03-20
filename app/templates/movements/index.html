@@ -6,20 +6,10 @@
 {% block content %}
 <h2 class="mb-4"><i class="bi bi-arrow-left-right me-2"></i>Registro de Movimentações</h2>
 
-<!-- Category Toggle -->
-<div class="btn-group mb-4" role="group">
-    <a href="/movements?category=EMPRESTIMO&tool_id={{ selected_tool_id }}&sort={{ sort }}"
-       class="btn {% if category == 'EMPRESTIMO' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-        <i class="bi bi-person-badge me-1"></i> Empréstimos
-    </a>
-    <a href="/movements?category=REPOSICAO&tool_id={{ selected_tool_id }}&sort={{ sort }}"
-       class="btn {% if category == 'REPOSICAO' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-        <i class="bi bi-gear me-1"></i> Reposições
-    </a>
-</div>
+
 
 <!-- Filters -->
-<div class="card shadow-sm mb-4">
+<div class="card mb-3">
     <div class="card-body">
         <form method="GET" action="/movements" class="row g-3 align-items-end">
             <input type="hidden" name="category" value="{{ category }}">
@@ -47,12 +37,25 @@
                 </button>
                 <a href="/movements?category={{ category }}" class="btn btn-outline-secondary">Limpar</a>
             </div>
+            <!-- Category Toggle -->
+            <div class="col-md-3">
+                <div class="btn-group" role="group">
+                    <a href="/movements?category=EMPRESTIMO&tool_id={{ selected_tool_id }}&sort={{ sort }}"
+                    class="btn {% if category == 'EMPRESTIMO' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        <i class="bi bi-person-badge me-1"></i> Empréstimos
+                    </a>
+                    <a href="/movements?category=REPOSICAO&tool_id={{ selected_tool_id }}&sort={{ sort }}"
+                    class="btn {% if category == 'REPOSICAO' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        <i class="bi bi-gear me-1"></i> Reposições
+                    </a>
+                </div>
+            </div>
         </form>
     </div>
 </div>
 
 <!-- Movements Table -->
-<div class="card shadow-sm">
+<div class="card">
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover table-striped mb-0 align-middle">
@@ -67,6 +70,8 @@
                         {% endif %}
                         <th class="text-center">Tipo</th>
                         <th class="text-center">Quantidade</th>
+                        <th class="text-end">Custo Unit.</th>
+                        <th class="text-end">Custo Total</th>
                         {% if category == 'EMPRESTIMO' %}
                             <th class="text-center">Status</th>
                             <th>Data Devolução</th>
@@ -97,6 +102,8 @@
                             {% endif %}
                         </td>
                         <td class="text-center fw-bold">{{ m.quantity }}</td>
+                        <td class="text-end">{{ "%.2f"|format(m.unit_cost or 0) }}</td>
+                        <td class="text-end">{{ "%.2f"|format((m.unit_cost or 0) * m.quantity) }}</td>
                         {% if category == 'EMPRESTIMO' %}
                             <td class="text-center">
                                 {% if m.loan_status == "PENDENTE" %}
@@ -132,7 +139,7 @@
                 {% endfor %}
                 {% if not movements %}
                     <tr>
-                        <td colspan="{% if category == 'EMPRESTIMO' %}9{% else %}6{% endif %}" class="text-center text-muted py-4">
+                        <td colspan="{% if category == 'EMPRESTIMO' %}11{% else %}8{% endif %}" class="text-center text-muted py-4">
                             Nenhuma movimentação registrada.
                         </td>
                     </tr>

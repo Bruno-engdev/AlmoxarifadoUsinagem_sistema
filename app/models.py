@@ -172,6 +172,7 @@ class Movement(Base):
     return_timestamp = Column(DateTime, nullable=True)
     loan_status = Column(String(20), nullable=True)  # PENDENTE or ENTREGUE
     notes = Column(Text, default="")
+    unit_cost = Column(Float, default=0.0)  # Cost per unit at time of movement (R$)
 
     tool = relationship("Tool", back_populates="movements")
     employee = relationship("Employee", back_populates="movements")
@@ -179,3 +180,23 @@ class Movement(Base):
 
     def __repr__(self):
         return f"<Movement {self.movement_type} qty={self.quantity}>"
+
+
+class ToolStockAlert(Base):
+    """
+    Persistent notification generated when a tool crosses below its min_stock.
+    A new alert is only created on the transition (healthy → low), not on every
+    movement while the tool remains below minimum.
+    """
+    __tablename__ = "tool_stock_alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tool_id = Column(Integer, ForeignKey("tools.id"), nullable=False)
+    current_stock = Column(Integer, nullable=False)
+    min_stock = Column(Integer, nullable=False)
+    is_critical = Column(Integer, default=0)
+    is_read = Column(Integer, default=0)          # 0 = unread, 1 = read
+    cleared_at = Column(DateTime, nullable=True)   # set when stock returns above minimum
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    tool = relationship("Tool")

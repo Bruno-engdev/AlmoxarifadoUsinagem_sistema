@@ -22,6 +22,7 @@ from app.auth import (
 )
 from app.routers import dashboard, tools, employees, movements_router, tool_types, machines
 from app.routers import auth as auth_router, admin as admin_router
+from app.routers import notifications as notifications_router
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -90,6 +91,7 @@ app.include_router(employees.router)
 app.include_router(movements_router.router)
 app.include_router(tool_types.router)
 app.include_router(machines.router)
+app.include_router(notifications_router.router)
 
 # ---------------------------------------------------------------------------
 # Startup

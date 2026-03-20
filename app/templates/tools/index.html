@@ -25,7 +25,7 @@
 </form>
 
 <!-- Tools Table -->
-<div class="card shadow-sm">
+<div class="card">
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover table-striped mb-0 align-middle">
@@ -150,6 +150,12 @@
                            min="1" required>
                 </div>
 
+                <div class="mb-3 d-none" id="mvCostGroup">
+                    <label for="mvCost" class="form-label fw-semibold">Custo Unitário (R$) *</label>
+                    <input type="number" name="unit_cost" id="mvCost" class="form-control"
+                           min="0" step="0.01" placeholder="0.00">
+                </div>
+
                 <div class="mb-3">
                     <label for="mvNotes" class="form-label fw-semibold">Observações</label>
                     <textarea name="notes" id="mvNotes" class="form-control" rows="2"></textarea>
@@ -178,15 +184,18 @@ function prepareMovement(toolId, toolName, type, category) {
     const machGroup = document.getElementById('mvMachineGroup');
     const empSelect = document.getElementById('mvEmployee');
     const machSelect = document.getElementById('mvMachine');
+    const costGroup = document.getElementById('mvCostGroup');
+    const costInput = document.getElementById('mvCost');
 
     // Reset fields
     empSelect.value = '';
     machSelect.value = '';
     document.getElementById('mvQty').value = '';
     document.getElementById('mvNotes').value = '';
+    costInput.value = '';
 
     if (type === 'IN') {
-        // Entrada: pede funcionário, categoria REPOSICAO
+        // Entrada: pede funcionário e custo unitário
         title.textContent = 'Entrada de Estoque – ' + toolName;
         btn.className = 'btn btn-success';
         btn.textContent = 'Adicionar Estoque';
@@ -194,6 +203,8 @@ function prepareMovement(toolId, toolName, type, category) {
         machGroup.classList.add('d-none');
         empSelect.required = true;
         machSelect.required = false;
+        costGroup.classList.remove('d-none');
+        costInput.required = true;
     } else if (category === 'EMPRESTIMO') {
         // Emprestar: pede funcionário
         title.textContent = 'Empréstimo – ' + toolName;
@@ -203,6 +214,8 @@ function prepareMovement(toolId, toolName, type, category) {
         machGroup.classList.add('d-none');
         empSelect.required = true;
         machSelect.required = false;
+        costGroup.classList.add('d-none');
+        costInput.required = false;
     } else {
         // Saída (Reposição): pede máquina
         title.textContent = 'Saída de Estoque – ' + toolName;
@@ -212,6 +225,8 @@ function prepareMovement(toolId, toolName, type, category) {
         machGroup.classList.remove('d-none');
         empSelect.required = false;
         machSelect.required = true;
+        costGroup.classList.add('d-none');
+        costInput.required = false;
     }
 }
 </script>

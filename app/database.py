@@ -31,7 +31,9 @@ def get_db():
 
 def init_db():
     """Create all tables and seed initial data if needed."""
-    from app.models import ToolType, Tool, Employee, Machine, User  # noqa: F401
+    from app.models import (  # noqa: F401
+        ToolType, Tool, Employee, Machine, User, ToolStockAlert,
+    )
 
     Base.metadata.create_all(bind=engine)
     _migrate_columns()
@@ -45,15 +47,29 @@ def _migrate_columns():
         ("tools", "is_critical",         "INTEGER DEFAULT 0"),
         ("tools", "avg_lifespan_hours",  "REAL DEFAULT 0"),
         ("tools", "origin_id",           "TEXT DEFAULT ''"),
+        ("movements", "unit_cost",       "REAL DEFAULT 0"),
     ]
     insp = inspect(engine)
     with engine.begin() as conn:
+        newly_added = set()
         for table, column, col_type in migrations:
             existing = [c["name"] for c in insp.get_columns(table)]
             if column not in existing:
                 conn.execute(text(
                     f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"
                 ))
+                newly_added.add((table, column))
+
+        # One-time backfill: populate movement unit_cost from tool cost
+        if ("movements", "unit_cost") in newly_added:
+            conn.execute(text(
+                "UPDATE movements SET unit_cost = ("
+                "  SELECT unit_cost FROM tools WHERE tools.id = movements.tool_id"
+                ") WHERE EXISTS ("
+                "  SELECT 1 FROM tools WHERE tools.id = movements.tool_id"
+                "  AND tools.unit_cost > 0"
+                ")"
+            ))
 
 
 def _seed_defaults():

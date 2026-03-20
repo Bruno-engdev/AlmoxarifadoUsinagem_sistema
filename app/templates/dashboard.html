@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% set active_page = "dashboard" %}
 
 {% block title %}Painel – Almoxarifado de Ferramentas{% endblock %}
@@ -66,7 +66,7 @@
         </div>
     </div> -->
     <div class="col-xl-3 col-md-6">
-        <div class="card border-start border-4 h-100 shadow-sm">
+        <div class="card border-4 h-100 shadow-sm">
             <div class="card-body d-flex align-items-center">
                 <i class="bi bi-graph-down display-5 me-3 opacity-75"></i>
                 <div>
@@ -78,7 +78,7 @@
     </div>
 
     <div class="col-xl-3 col-md-6">
-        <div class="card border-start border-4 h-100 shadow-sm">
+        <div class="card border-4 h-100 shadow-sm">
             <div class="card-body d-flex align-items-center">
                 <i class="bi bi-currency-dollar display-5 me-3 text-success opacity-75"></i>
                 <div>
@@ -101,7 +101,7 @@
         </div>
     </div>-->
     <div class="col-xl-3 col-md-6">
-        <div class="card border-start border-4 h-100 shadow-sm">
+        <div class="card border-4 h-100 shadow-sm">
             <div class="card-body d-flex align-items-center">
                 <i class="bi bi-exclamation-triangle display-5 me-3 opacity-75"></i>
                 <div>
@@ -113,7 +113,7 @@
     </div>
 
     <div class="col-xl-3 col-md-6">
-        <div class="card border-start border-4 h-100 shadow-sm">
+        <div class="card border-4 h-100 shadow-sm">
             <div class="card-body d-flex align-items-center">
                 <i class="bi bi-shield-check display-5 me-3 text-info opacity-75"></i>
                 <div>
@@ -550,7 +550,7 @@ if (ctxTop) {
             datasets: [{
                 label: 'Total Consumido',
                 data: {{ top_data | tojson }},
-                backgroundColor: PALETTE,
+                backgroundColor: 'rgba(137,180,250,0.7)',
                 borderRadius: 4,
             }]
         },
@@ -596,12 +596,14 @@ if (ctxCost) {
             datasets: [{
                 label: 'Custo (R$)',
                 data: {{ cost_data | tojson }},
-                borderColor: '#f9e2af',
+                borderColor: 'rgba(137,180,250,0.7)',
                 backgroundColor: 'rgba(249,226,175,0.15)',
                 fill: true,
                 tension: 0.3,
                 pointRadius: 4,
-                pointBackgroundColor: '#f9e2af',
+                pointBackgroundColor: 'rgba(137,180,250,0.7)',
+                borderWidth: 2,
+                
             }]
         },
         options: {

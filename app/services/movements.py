@@ -7,6 +7,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.models import Movement, Tool
+from app.services.notifications import check_and_create_alert
 
 
 def register_movement(
@@ -18,6 +19,7 @@ def register_movement(
     notes: str = "",
     category: str = "EMPRESTIMO",
     machine_id: int | None = None,
+    unit_cost: float | None = None,
 ) -> Movement:
     """
     Create a movement record and update the tool's current_stock.
@@ -51,6 +53,15 @@ def register_movement(
             f"Insufficient stock. Current: {tool.current_stock}, Requested: {quantity}"
         )
 
+    # Determine unit cost for this movement
+    if movement_type == "IN":
+        if unit_cost is None or unit_cost < 0:
+            raise ValueError("Unit cost is required for stock entry and must be >= 0.")
+        mv_cost = unit_cost
+        tool.unit_cost = unit_cost  # cache latest entry cost on tool
+    else:
+        mv_cost = tool.unit_cost or 0.0  # snapshot current cost for OUT
+
     # Determine loan status for EMPRESTIMO OUT movements
     loan_status = None
     if category == "EMPRESTIMO" and movement_type == "OUT":
@@ -67,6 +78,7 @@ def register_movement(
         timestamp=datetime.utcnow(),
         loan_status=loan_status,
         notes=notes,
+        unit_cost=mv_cost,
     )
     db.add(movement)
 
@@ -75,6 +87,9 @@ def register_movement(
         tool.current_stock += quantity
     else:
         tool.current_stock -= quantity
+
+    # Check stock threshold and create/clear alert
+    check_and_create_alert(db, tool)
 
     db.commit()
     db.refresh(movement)
@@ -100,6 +115,8 @@ def return_loan(db: Session, movement_id: int) -> Movement:
     tool = db.query(Tool).filter(Tool.id == movement.tool_id).first()
     if tool:
         tool.current_stock += movement.quantity
+        # Check stock threshold and clear alert if recovered
+        check_and_create_alert(db, tool)
 
     db.commit()
     db.refresh(movement)

@@ -79,6 +79,7 @@
                                 <th>Funcionário</th>
                                 <th>Tipo</th>
                                 <th>Qtd.</th>
+                                <th class="text-end">Custo Unit.</th>
                                 <th>Observações</th>
                             </tr>
                         </thead>
@@ -95,11 +96,12 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ m.quantity }}</td>
+                                <td class="text-end">{{ "%.2f"|format(m.unit_cost or 0) }}</td>
                                 <td>{{ m.notes or "—" }}</td>
                             </tr>
                         {% endfor %}
                         {% if not tool.movements %}
-                            <tr><td colspan="5" class="text-center text-muted">Nenhuma movimentação registrada</td></tr>
+                            <tr><td colspan="6" class="text-center text-muted">Nenhuma movimentação registrada</td></tr>
                         {% endif %}
                         </tbody>
                     </table>
