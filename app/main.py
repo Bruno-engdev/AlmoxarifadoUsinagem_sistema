@@ -99,6 +99,17 @@ app.include_router(notifications_router.router)
 
 @app.on_event("startup")
 def on_startup():
-    """Initialize the database and seed defaults on first run."""
+    """Initialize the database, seed defaults, and scan stock for missing alerts."""
     init_db()
     seed_admin()
+
+    # Scan all tools for missing stock alerts
+    from app.database import SessionLocal
+    from app.services.notifications import scan_all_tools
+    db = SessionLocal()
+    try:
+        count = scan_all_tools(db)
+        if count:
+            print(f"[startup] Created {count} missing stock alert(s).")
+    finally:
+        db.close()

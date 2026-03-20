@@ -5,14 +5,34 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-8">
-        <a href="/tools" class="btn btn-outline-secondary btn-sm mb-3">
-            <i class="bi bi-arrow-left me-1"></i> Voltar para Ferramentas
-        </a>
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <a href="/tools" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Voltar
+            </a>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-success"
+                        data-bs-toggle="modal" data-bs-target="#movementModalDetail"
+                        onclick="prepareMovementDetail('IN')">
+                    <i class="bi bi-plus-lg me-1"></i>Entrada
+                </button>
+                <button class="btn btn-sm btn-outline-danger"
+                        data-bs-toggle="modal" data-bs-target="#movementModalDetail"
+                        onclick="prepareMovementDetail('OUT')">
+                    <i class="bi bi-dash-lg me-1"></i>Saída
+                </button>
+            </div>
+        </div>
 
-        <div class="card shadow-sm">
+        <!-- Tool header card -->
+        <div class="card shadow-sm mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">{{ tool.name }}</h4>
+                <div>
+                    <h4 class="mb-0">{{ tool.name }}</h4>
+                    {% if tool.origin_id %}
+                    <small class="text-muted">{{ tool.origin_id }}</small>
+                    {% endif %}
+                </div>
                 {% if tool.status == "CRITICAL" %}
                     <span class="badge bg-danger fs-6">CRÍTICO</span>
                 {% elif tool.status == "LOW STOCK" %}
@@ -22,86 +42,119 @@
                 {% endif %}
             </div>
             <div class="card-body">
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <strong>Tipo:</strong> {{ tool.tool_type.name }}
+                <!-- Operational summary -->
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-4 col-6">
+                        <div class="detail-stat">
+                            <span class="detail-stat-label">Estoque Atual</span>
+                            <span class="detail-stat-value {% if tool.current_stock < tool.min_stock %}text-danger{% elif tool.current_stock <= tool.min_stock * 1.2 %}text-warning{% else %}text-success{% endif %}">
+                                {{ tool.current_stock }}
+                            </span>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <strong>ID Origem:</strong> {{ tool.origin_id or "—" }}
+                    <div class="col-sm-4 col-6">
+                        <div class="detail-stat">
+                            <span class="detail-stat-label">Mínimo</span>
+                            <span class="detail-stat-value">{{ tool.min_stock }}</span>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <strong>Descrição:</strong> {{ tool.description or "—" }}
-                    </div>
-                    <div class="col-md-4">
-                        <strong>Localização:</strong>
-                        {% if tool.location %}
-                            <span class="badge bg-secondary fs-6">{{ tool.location }}</span>
-                        {% else %}
-                            —
-                        {% endif %}
-                    </div>
-                    <div class="col-md-4">
-                        <strong>Estoque Mín.:</strong> {{ tool.min_stock }}
-                    </div>
-                    <div class="col-md-4">
-                        <strong>Estoque Máx.:</strong> {{ tool.max_stock }}
-                    </div>
-                    <div class="col-md-4">
-                        <strong>Estoque Atual:</strong>
-                        <span class="fw-bold {% if tool.current_stock < tool.min_stock %}text-danger{% else %}text-success{% endif %}">
-                            {{ tool.current_stock }}
-                        </span>
+                    <div class="col-sm-4 col-6">
+                        <div class="detail-stat">
+                            <span class="detail-stat-label">Máximo</span>
+                            <span class="detail-stat-value">{{ tool.max_stock }}</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Parameters -->
-                {% if tool.parameters %}
-                <h5 class="mt-4 mb-3"><i class="bi bi-sliders me-1"></i> Parâmetros</h5>
-                <table class="table table-sm table-bordered w-auto">
-                    <thead class="table-light">
-                        <tr><th>Parâmetro</th><th>Valor</th></tr>
-                    </thead>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Tipo</small>
+                        <span>{{ tool.tool_type.name }}</span>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Localização</small>
+                        {% if tool.location %}
+                            <span class="badge bg-secondary">{{ tool.location }}</span>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Descrição</small>
+                        <span>{{ tool.description or "—" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parameters -->
+        {% if tool.parameters %}
+        <div class="card shadow-sm mb-3">
+            <div class="card-header py-2">
+                <i class="bi bi-sliders me-1"></i>Parâmetros
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
                     <tbody>
                     {% for p in tool.parameters %}
-                        <tr><td>{{ p.parameter_name }}</td><td>{{ p.parameter_value }}</td></tr>
+                        <tr>
+                            <td class="fw-semibold" style="width:40%;">{{ p.parameter_name }}</td>
+                            <td>{{ p.parameter_value }}</td>
+                        </tr>
                     {% endfor %}
                     </tbody>
                 </table>
-                {% endif %}
+            </div>
+        </div>
+        {% endif %}
 
-                <!-- Recent Movements -->
-                <h5 class="mt-4 mb-3"><i class="bi bi-arrow-left-right me-1"></i> Movimentações Recentes</h5>
+        <!-- Recent Movements -->
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center py-2">
+                <span><i class="bi bi-arrow-left-right me-1"></i>Movimentações Recentes</span>
+                <a href="/movements?tool_id={{ tool.id }}" class="btn btn-sm btn-outline-secondary">
+                    Ver todas
+                </a>
+            </div>
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-sm table-striped">
+                    <table class="table table-hover table-sm mb-0">
                         <thead class="table-dark">
                             <tr>
                                 <th>Data</th>
                                 <th>Funcionário</th>
-                                <th>Tipo</th>
-                                <th>Qtd.</th>
+                                <th class="text-center">Tipo</th>
+                                <th class="text-center">Qtd.</th>
                                 <th class="text-end">Custo Unit.</th>
-                                <th>Observações</th>
+                                <th>Obs.</th>
                             </tr>
                         </thead>
                         <tbody>
                         {% for m in tool.movements|sort(attribute='timestamp', reverse=True) %}
                             <tr>
-                                <td>{{ m.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
-                                <td>{{ m.employee.name }}</td>
-                                <td>
+                                <td class="text-nowrap small">{{ m.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>{{ m.employee.name if m.employee else "—" }}</td>
+                                <td class="text-center">
                                     {% if m.movement_type == "IN" %}
-                                        <span class="badge bg-success">ENTRADA</span>
+                                        <span class="badge bg-success badge-sm">ENTRADA</span>
                                     {% else %}
-                                        <span class="badge bg-danger">SAÍDA</span>
+                                        <span class="badge bg-danger badge-sm">SAÍDA</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ m.quantity }}</td>
-                                <td class="text-end">{{ "%.2f"|format(m.unit_cost or 0) }}</td>
-                                <td>{{ m.notes or "—" }}</td>
+                                <td class="text-center fw-bold">{{ m.quantity }}</td>
+                                <td class="text-end small text-muted">R$ {{ "%.2f"|format(m.unit_cost or 0) }}</td>
+                                <td class="small text-muted">{{ m.notes or "—" }}</td>
                             </tr>
                         {% endfor %}
                         {% if not tool.movements %}
-                            <tr><td colspan="6" class="text-center text-muted">Nenhuma movimentação registrada</td></tr>
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <div class="empty-state">
+                                        <i class="bi bi-inbox d-block mb-1 opacity-50" style="font-size:1.5rem;"></i>
+                                        <span class="text-muted small">Nenhuma movimentação registrada</span>
+                                    </div>
+                                </td>
+                            </tr>
                         {% endif %}
                         </tbody>
                     </table>

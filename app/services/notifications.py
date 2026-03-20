@@ -66,10 +66,16 @@ def _clear_alerts(db: Session, tool_id: int):
 
 
 def get_alerts(db: Session, unread_only: bool = False) -> list[ToolStockAlert]:
-    """Return alerts ordered by most recent first."""
-    q = db.query(ToolStockAlert).order_by(ToolStockAlert.created_at.desc())
+    """Return alerts ordered by: active unread first, then active read, then cleared."""
+    q = db.query(ToolStockAlert)
     if unread_only:
         q = q.filter(ToolStockAlert.is_read == 0)
+    q = q.order_by(
+        ToolStockAlert.cleared_at.isnot(None),   # active (NULL) first
+        ToolStockAlert.is_read,                   # unread (0) before read (1)
+        ToolStockAlert.is_critical.desc(),         # critical first
+        ToolStockAlert.created_at.desc(),          # newest first
+    )
     return q.limit(100).all()
 
 
@@ -88,3 +94,20 @@ def mark_all_read(db: Session):
         .update({"is_read": 1})
     )
     db.commit()
+
+
+def scan_all_tools(db: Session) -> int:
+    """
+    Scan every tool in the database and create missing alerts for tools
+    that are currently below their minimum stock but have no open alert.
+    Also clears stale alerts for tools that have recovered.
+    Returns the number of new alerts created.
+    """
+    tools = db.query(Tool).filter(Tool.min_stock > 0).all()
+    created = 0
+    for tool in tools:
+        result = check_and_create_alert(db, tool)
+        if result is not None:
+            created += 1
+    db.commit()
+    return created

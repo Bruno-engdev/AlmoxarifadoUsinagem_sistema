@@ -69,20 +69,29 @@ document.addEventListener('DOMContentLoaded', function () {
                     notifModalBody.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-check-circle fs-3 d-block mb-2"></i>Nenhuma notificação</div>';
                     return;
                 }
+                // Sort: unread+critical first, then unread, then read
+                data.sort((a, b) => {
+                    const scoreA = (!a.is_read ? 2 : 0) + (a.is_critical ? 1 : 0);
+                    const scoreB = (!b.is_read ? 2 : 0) + (b.is_critical ? 1 : 0);
+                    return scoreB - scoreA;
+                });
                 let html = '';
                 data.forEach(n => {
                     const cls = n.is_read ? '' : ' unread';
                     const iconCls = n.is_critical ? 'bi-exclamation-triangle-fill text-danger' : 'bi-exclamation-circle text-warning';
                     const criticalTag = n.is_critical ? ' <span class="badge bg-danger" style="font-size:0.65rem;">Crítica</span>' : '';
                     const cleared = n.cleared_at ? ' <span class="badge bg-success" style="font-size:0.65rem;">Resolvido</span>' : '';
-                    html += `<div class="notif-item${cls}" data-id="${n.id}">
-                        <i class="bi ${iconCls} notif-icon"></i>
-                        <div class="notif-body">
-                            <div class="notif-title">${n.tool_name}${criticalTag}${cleared}</div>
-                            <div class="notif-detail">Estoque: <strong>${n.current_stock}</strong> / Mín: <strong>${n.min_stock}</strong></div>
+                    const toolLink = n.tool_id ? '/tools/' + n.tool_id : '#';
+                    html += `<a href="${toolLink}" class="notif-item-link" data-bs-dismiss="modal">
+                        <div class="notif-item${cls}" data-id="${n.id}">
+                            <i class="bi ${iconCls} notif-icon"></i>
+                            <div class="notif-body">
+                                <div class="notif-title">${n.tool_name}${criticalTag}${cleared}</div>
+                                <div class="notif-detail">Estoque: <strong>${n.current_stock}</strong> / Mín: <strong>${n.min_stock}</strong></div>
+                            </div>
+                            <span class="notif-time">${n.created_at}</span>
                         </div>
-                        <span class="notif-time">${n.created_at}</span>
-                    </div>`;
+                    </a>`;
                 });
                 notifModalBody.innerHTML = html;
             })
@@ -100,6 +109,30 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(() => {});
     }
 
+    function refreshAlerts() {
+        const btn = document.getElementById('refreshAlertsBtn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Verificando...';
+        }
+        fetch('/api/notifications/refresh', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                fetchNotifications();
+                fetchUnreadCount();
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Atualizar';
+                }
+            })
+            .catch(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Atualizar';
+                }
+            });
+    }
+
     // Wire events
     if (notifModal) {
         notifModal.addEventListener('show.bs.modal', fetchNotifications);
@@ -107,10 +140,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (markAllBtn) {
         markAllBtn.addEventListener('click', markAllRead);
     }
+    const refreshBtn = document.getElementById('refreshAlertsBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', refreshAlerts);
+    }
 
-    // Initial badge fetch + poll every 60s
+    // Initial badge fetch + poll every 30s
     if (notifBadge) {
         fetchUnreadCount();
-        setInterval(fetchUnreadCount, 60000);
+        setInterval(fetchUnreadCount, 30000);
     }
 });

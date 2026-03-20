@@ -4,7 +4,53 @@
 {% block title %}Painel – Almoxarifado de Ferramentas{% endblock %}
 
 {% block content %}
-<h2 class="mb-4 text-center"></i>Indicadores de Ferramentas e Produção</h2>
+<h2 class="mb-3"><i class="bi bi-speedometer2 me-2"></i>Painel de Controle</h2>
+
+<!-- ================================================================ -->
+<!-- ALERTS — Action priority zone (shown first)                      -->
+<!-- ================================================================ -->
+{% if tools_below %}
+<div class="alert alert-danger d-flex align-items-start mb-3" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2 fs-4 mt-1 flex-shrink-0"></i>
+    <div class="flex-grow-1">
+        <strong>{{ tools_below_count }} ferramenta(s) abaixo do estoque mínimo</strong>
+        <ul class="mb-0 mt-1 list-unstyled">
+        {% for t in tools_below[:5] %}
+            <li class="mb-1">
+                <a href="/tools/{{ t.id }}" class="text-decoration-none">
+                    <strong>{{ t.name }}</strong>
+                </a>
+                <span class="text-muted">— Estoque: <strong class="text-danger">{{ t.current_stock }}</strong> / Mín: {{ t.min_stock }}</span>
+            </li>
+        {% endfor %}
+        {% if tools_below|length > 5 %}
+            <li class="text-muted small mt-1">… e mais {{ tools_below|length - 5 }} ferramenta(s)
+                <a href="/tools" class="ms-1">Ver todas</a>
+            </li>
+        {% endif %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
+{% if approaching %}
+<div class="alert alert-warning d-flex align-items-start mb-3" role="alert">
+    <i class="bi bi-exclamation-circle-fill me-2 fs-4 mt-1 flex-shrink-0"></i>
+    <div class="flex-grow-1">
+        <strong>{{ approaching|length }} ferramenta(s) próxima(s) do estoque mínimo</strong>
+        <ul class="mb-0 mt-1 list-unstyled">
+        {% for t in approaching[:5] %}
+            <li class="mb-1">
+                <a href="/tools/{{ t.id }}" class="text-decoration-none">
+                    <strong>{{ t.name }}</strong>
+                </a>
+                <span class="text-muted">— Estoque: {{ t.current_stock }} / Mín: {{ t.min_stock }}</span>
+            </li>
+        {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
 
 <!-- ================================================================ -->
 <!-- FILTER BAR                                                       -->
@@ -66,21 +112,21 @@
         </div>
     </div> -->
     <div class="col-xl-3 col-md-6">
-        <div class="card border-4 h-100 shadow-sm">
+        <div class="card kpi-card h-100 shadow-sm">
             <div class="card-body d-flex align-items-center">
-                <i class="bi bi-graph-down display-5 me-3 opacity-75"></i>
+                <div class="kpi-icon kpi-icon-blue"><i class="bi bi-graph-down"></i></div>
                 <div>
                     <h3 class="mb-0" id="kpi-consumption">{{ consumption_period }}</h3>
-                    <small>Consumo no Período</small>
+                    <small class="text-muted">Consumo no Período</small>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="col-xl-3 col-md-6">
-        <div class="card border-4 h-100 shadow-sm">
+        <div class="card kpi-card h-100 shadow-sm">
             <div class="card-body d-flex align-items-center">
-                <i class="bi bi-currency-dollar display-5 me-3 text-success opacity-75"></i>
+                <div class="kpi-icon kpi-icon-green"><i class="bi bi-currency-dollar"></i></div>
                 <div>
                     <h4 class="mb-0" id="kpi-stock-value">R$ {{ "%.2f"|format(total_stock_value) }}</h4>
                     <small class="text-muted">Valor Total em Estoque</small>
@@ -101,24 +147,24 @@
         </div>
     </div>-->
     <div class="col-xl-3 col-md-6">
-        <div class="card border-4 h-100 shadow-sm">
+        <div class="card kpi-card {% if tools_below_count > 0 %}kpi-card-danger{% endif %} h-100 shadow-sm">
             <div class="card-body d-flex align-items-center">
-                <i class="bi bi-exclamation-triangle display-5 me-3 opacity-75"></i>
+                <div class="kpi-icon kpi-icon-red"><i class="bi bi-exclamation-triangle"></i></div>
                 <div>
                     <h3 class="mb-0" id="kpi-below">{{ tools_below_count }}</h3>
-                    <small>Abaixo do Estoque Mín.</small>
+                    <small class="text-muted">Abaixo do Mínimo</small>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="col-xl-3 col-md-6">
-        <div class="card border-4 h-100 shadow-sm">
+        <div class="card kpi-card h-100 shadow-sm">
             <div class="card-body d-flex align-items-center">
-                <i class="bi bi-shield-check display-5 me-3 text-info opacity-75"></i>
+                <div class="kpi-icon kpi-icon-teal"><i class="bi bi-shield-check"></i></div>
                 <div>
                     <h4 class="mb-0" id="kpi-critical">{{ critical_avail.pct }}%</h4>
-                    <small class="text-muted">Disp. Ferramentas Críticas</small>
+                    <small class="text-muted">Disp. Críticas</small>
                     <div class="text-muted small">{{ critical_avail.ok }} / {{ critical_avail.total }}</div>
                 </div>
             </div>
@@ -154,40 +200,6 @@
         </div>
     </div>-->
 </div>
-
-<!-- ================================================================ -->
-<!-- ALERTS                                                           -->
-<!-- ================================================================ -->
-{% if tools_below %}
-<div class="alert alert-danger d-flex align-items-start mb-4" role="alert">
-    <i class="bi bi-exclamation-triangle-fill me-2 fs-4 mt-1"></i>
-    <div>
-        <strong>{{ tools_below_count }} ferramenta(s) abaixo do estoque mínimo!</strong>
-        <ul class="mb-0 mt-1">
-        {% for t in tools_below[:5] %}
-            <li>{{ t.name }} – Estoque: {{ t.current_stock }} / Mín: {{ t.min_stock }}</li>
-        {% endfor %}
-        {% if tools_below|length > 5 %}
-            <li class="text-muted">… e mais {{ tools_below|length - 5 }}</li>
-        {% endif %}
-        </ul>
-    </div>
-</div>
-{% endif %}
-
-{% if approaching %}
-<div class="alert alert-warning d-flex align-items-start mb-4" role="alert">
-    <i class="bi bi-exclamation-circle-fill me-2 fs-4 mt-1"></i>
-    <div>
-        <strong>{{ approaching|length }} ferramenta(s) próxima(s) do estoque mínimo</strong>
-        <ul class="mb-0 mt-1">
-        {% for t in approaching[:5] %}
-            <li>{{ t.name }} – Estoque: {{ t.current_stock }} / Mín: {{ t.min_stock }}</li>
-        {% endfor %}
-        </ul>
-    </div>
-</div>
-{% endif %}
 
 <!-- ================================================================ -->
 <!-- CHARTS – Row 1: Consumption + Entries vs Exits                   -->
@@ -272,8 +284,8 @@
                         <tbody>
                         {% for t in tools_below %}
                             <tr>
-                                <td>{{ t.name }}</td>
-                                <td class="text-center">{{ t.current_stock }}</td>
+                                <td><a href="/tools/{{ t.id }}" class="text-decoration-none">{{ t.name }}</a></td>
+                                <td class="text-center fw-bold {% if t.current_stock <= 0 %}text-danger{% endif %}">{{ t.current_stock }}</td>
                                 <td class="text-center">{{ t.min_stock }}</td>
                                 <td class="text-center">
                                     {% if t.current_stock <= 0 %}

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.auth import require_login
-from app.services.notifications import get_alerts, get_unread_count, mark_all_read
+from app.services.notifications import get_alerts, get_unread_count, mark_all_read, scan_all_tools
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 
@@ -20,6 +20,7 @@ def list_notifications(db: Session = Depends(get_db), _=Depends(require_login)):
     return [
         {
             "id": a.id,
+            "tool_id": a.tool_id,
             "tool_name": a.tool.name if a.tool else f"Tool #{a.tool_id}",
             "current_stock": a.current_stock,
             "min_stock": a.min_stock,
@@ -41,3 +42,10 @@ def unread_count(db: Session = Depends(get_db), _=Depends(require_login)):
 def mark_read(db: Session = Depends(get_db), _=Depends(require_login)):
     mark_all_read(db)
     return {"ok": True}
+
+
+@router.post("/refresh")
+def refresh_alerts(db: Session = Depends(get_db), _=Depends(require_login)):
+    """Scan all tools and create any missing stock alerts."""
+    count = scan_all_tools(db)
+    return {"ok": True, "new_alerts": count}
