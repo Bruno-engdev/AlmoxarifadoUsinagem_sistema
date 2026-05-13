@@ -5,7 +5,7 @@ Admin-only mutations (manual entry, edit, delete) are gated by require_admin.
 
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Request, Depends, Query
+from fastapi import APIRouter, Request, Depends, Query, Form
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from app.database import get_db
 from app.models import Movement, Tool, Employee, Machine
 from app.auth import require_login, require_admin
+from app.pagination import paginate_query
 from app.services.movements import (
     return_loan,
     create_manual_movement,
@@ -82,6 +83,8 @@ def movements_list(
     search_col: str = Query("all"),
     date_from: str = Query(""),
     date_to: str = Query(""),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(25, alias="per_page"),
     flash: str = Query(""),
     error: str = Query(""),
     db: Session = Depends(get_db),
@@ -149,7 +152,22 @@ def movements_list(
     else:
         query = query.order_by(Movement.timestamp.desc())
 
-    movements = query.all()
+    movements, pagination = paginate_query(
+        query,
+        base_path=request.url.path,
+        params={
+            "tool_id": tool_id,
+            "sort": sort,
+            "category": category,
+            "search": search,
+            "search_col": search_col,
+            "date_from": date_from,
+            "date_to": date_to,
+        },
+        page=page,
+        per_page=per_page,
+        id_prefix="movements",
+    )
     tools = db.query(Tool).order_by(Tool.name).all()
     employees = db.query(Employee).order_by(Employee.name).all()
     machines = db.query(Machine).order_by(Machine.name).all()
@@ -169,6 +187,9 @@ def movements_list(
             "search_col": search_col,
             "date_from": date_from,
             "date_to": date_to,
+            "page": pagination["page"],
+            "per_page": pagination["per_page"],
+            "pagination": pagination,
             "flash_message": flash,
             "error_message": error,
         },
@@ -178,6 +199,7 @@ def movements_list(
 @router.post("/{movement_id}/return")
 def movement_return(
     movement_id: int,
+    redirect_to: str = Form("/movements?category=EMPRESTIMO"),
     db: Session = Depends(get_db),
 ):
     """Mark a loan as returned."""
@@ -185,7 +207,8 @@ def movement_return(
         return_loan(db, movement_id)
     except ValueError:
         pass
-    return RedirectResponse(url="/movements?category=EMPRESTIMO", status_code=303)
+    safe_redirect = redirect_to if redirect_to.startswith("/") else "/movements?category=EMPRESTIMO"
+    return RedirectResponse(url=safe_redirect, status_code=303)
 
 
 # ---------------------------------------------------------------------------

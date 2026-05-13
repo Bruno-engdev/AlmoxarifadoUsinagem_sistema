@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set active_page = "movements" %}
 {% set is_admin = request.state.current_user and request.state.current_user.role == 'ADMIN' %}
-{% set current_url = '/movements?' ~ ('category=' ~ category) ~ '&tool_id=' ~ selected_tool_id ~ '&sort=' ~ sort ~ '&search=' ~ (search or '') ~ '&search_col=' ~ (search_col or 'all') ~ '&date_from=' ~ (date_from or '') ~ '&date_to=' ~ (date_to or '') %}
+{% set current_url = '/movements?' ~ ('category=' ~ category) ~ '&tool_id=' ~ selected_tool_id ~ '&sort=' ~ sort ~ '&search=' ~ ((search or '')|urlencode) ~ '&search_col=' ~ ((search_col or 'all')|urlencode) ~ '&date_from=' ~ ((date_from or '')|urlencode) ~ '&date_to=' ~ ((date_to or '')|urlencode) ~ '&page=' ~ page ~ '&per_page=' ~ per_page %}
 {% set selected_tool = namespace(name='Todas as Ferramentas') %}
 {% if selected_tool_id and selected_tool_id != 0 %}
   {% for t in tools %}
@@ -32,10 +32,15 @@
   <div class="ops-context-bar">
     <div class="ops-context-copy">
       <span class="ops-context-kicker">Operação</span>
-      <h1 class="ops-context-title">Log de movimentações</h1>
-      <p class="ops-context-text">
-        Consulte empréstimos, reposições e registros administrativos com o mesmo browse operacional.
-      </p>
+      <div class="ops-context-heading">
+        <h1 class="ops-context-title">Log de movimentações</h1>
+        <button class="btn btn-sm ops-help-toggle collapsed" type="button"
+                data-bs-toggle="collapse" data-bs-target="#movementsPageHelp"
+                aria-expanded="false" aria-controls="movementsPageHelp">
+          <i class="bi bi-question-circle"></i>
+          <span class="d-none d-sm-inline">Ajuda</span>
+        </button>
+      </div>
     </div>
     <div class="ops-context-meta">
       <span class="ops-meta-pill">
@@ -47,139 +52,152 @@
       </span>
     </div>
   </div>
+  <div class="collapse ops-help-collapse" id="movementsPageHelp">
+    <div class="ops-help-panel">
+      <strong class="ops-help-title">Como usar esta página</strong>
+      <p class="ops-help-text mb-0">
+        Troque entre empréstimos e reposições nas abas, escolha a ferramenta no bloco de contexto e refine período e busca no segundo nível para localizar registros específicos do histórico.
+      </p>
+    </div>
+  </div>
 
   <!-- Category tabs — primary context selector -->
   <div class="category-tabs mb-0">
-    <a href="/movements?category=EMPRESTIMO&tool_id={{ selected_tool_id }}&sort={{ sort }}&search={{ search }}&search_col={{ search_col }}&date_from={{ date_from }}&date_to={{ date_to }}"
+    <a href="/movements?category=EMPRESTIMO&tool_id={{ selected_tool_id }}&sort={{ sort }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&per_page={{ per_page }}"
        class="category-tab {% if category == 'EMPRESTIMO' %}active{% endif %}">
       <i class="bi bi-person-badge me-1"></i>Empréstimos
     </a>
-    <a href="/movements?category=REPOSICAO&tool_id={{ selected_tool_id }}&sort={{ sort }}&search={{ search }}&search_col={{ search_col }}&date_from={{ date_from }}&date_to={{ date_to }}"
+    <a href="/movements?category=REPOSICAO&tool_id={{ selected_tool_id }}&sort={{ sort }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&per_page={{ per_page }}"
        class="category-tab {% if category == 'REPOSICAO' %}active{% endif %}">
       <i class="bi bi-gear me-1"></i>Reposições
     </a>
   </div>
 
-  <!-- ====== Toolbar: filters left, search right ====== -->
-  <div class="tools-toolbar tools-toolbar--wrap">
-    <div class="tools-toolbar-left tools-toolbar-left--wrap">
-      <form method="GET" action="/movements" class="toolbar-inline-form" id="toolFilterForm">
-            <input type="hidden" name="category" value="{{ category }}">
-            <input type="hidden" name="sort" value="{{ sort }}">
-            <input type="hidden" name="search" value="{{ search }}">
-            <input type="hidden" name="search_col" value="{{ search_col }}">
-            <input type="hidden" name="date_from" value="{{ date_from }}">
-            <input type="hidden" name="date_to" value="{{ date_to }}">
-            <select name="tool_id" class="form-select form-select-sm" style="max-width:220px;" onchange="this.form.submit()">
-                <option value="0">Todas as Ferramentas</option>
-                {% for t in tools %}
-                <option value="{{ t.id }}" {% if selected_tool_id == t.id %}selected{% endif %}>
-                    {{ t.name }}
-                </option>
-                {% endfor %}
-            </select>
+  <div class="movements-toolbar-shell">
+    <div class="movements-toolbar-tier movements-toolbar-tier--context">
+      <div class="movements-toolbar-section movements-toolbar-section--tool">
+        <span class="movements-toolbar-label">Ferramenta em foco</span>
+        <form method="GET" action="/movements" class="toolbar-inline-form" id="toolFilterForm">
+          <input type="hidden" name="category" value="{{ category }}">
+          <input type="hidden" name="sort" value="{{ sort }}">
+          <input type="hidden" name="search" value="{{ search }}">
+          <input type="hidden" name="search_col" value="{{ search_col }}">
+          <input type="hidden" name="date_from" value="{{ date_from }}">
+          <input type="hidden" name="date_to" value="{{ date_to }}">
+          <input type="hidden" name="per_page" value="{{ per_page }}">
+          <select name="tool_id" class="form-select form-select-sm movements-tool-select" onchange="this.form.submit()">
+            <option value="0">Todas as Ferramentas</option>
+            {% for t in tools %}
+            <option value="{{ t.id }}" {% if selected_tool_id == t.id %}selected{% endif %}>
+              {{ t.name }}
+            </option>
+            {% endfor %}
+          </select>
         </form>
-            <form method="GET" action="/movements" class="toolbar-inline-form" id="dateFilterForm">
-            <input type="hidden" name="category" value="{{ category }}">
-            <input type="hidden" name="sort" value="{{ sort }}">
-            <input type="hidden" name="search" value="{{ search }}">
-            <input type="hidden" name="search_col" value="{{ search_col }}">
-            <input type="hidden" name="tool_id" value="{{ selected_tool_id }}">
-            <input type="date" name="date_from" class="form-control form-control-sm" style="max-width:140px;"
-                   value="{{ date_from }}" title="Data inicial">
-              <span class="toolbar-separator">até</span>
-            <input type="date" name="date_to" class="form-control form-control-sm" style="max-width:140px;"
-                   value="{{ date_to }}" title="Data final">
-            <button type="submit" class="btn btn-sm btn-outline-secondary tools-action-btn" title="Filtrar por data">
-                <i class="bi bi-calendar-check"></i>
-            </button>
-        </form>
-        {% if (selected_tool_id and selected_tool_id != 0) or search or date_from or date_to %}
-        <a href="/movements?category={{ category }}" class="btn btn-sm btn-outline-secondary tools-action-btn">
-            <i class="bi bi-x-lg me-1"></i>Limpar
-        </a>
-        {% endif %}
-        {% if is_admin %}
-        <button type="button" class="btn btn-sm btn-primary tools-action-btn ms-1"
-                data-bs-toggle="modal" data-bs-target="#manualMovementModal">
-            <i class="bi bi-plus-lg me-1"></i>Adicionar manualmente
-        </button>
-        {% endif %}
       </div>
-    <div class="tools-toolbar-right">
-        <form method="GET" action="/movements" class="tools-search-form" id="mvSearchForm">
-            <input type="hidden" name="category" value="{{ category }}">
-            <input type="hidden" name="tool_id" value="{{ selected_tool_id }}">
-            <input type="hidden" name="sort" value="{{ sort }}">
-            <input type="hidden" name="date_from" value="{{ date_from }}">
-            <input type="hidden" name="date_to" value="{{ date_to }}">
-            <div class="input-group input-group-sm">
-                <span class="input-group-text tools-search-icon"><i class="bi bi-search"></i></span>
-                <input type="text" name="search" class="form-control form-control-sm" id="mvSearchInput"
-                       placeholder="Buscar..." value="{{ search }}">
-                <input type="hidden" name="search_col" id="mvSearchColInput" value="{{ search_col or 'all' }}">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
-                        data-bs-toggle="dropdown" aria-expanded="false" id="mvSearchColBtn">
-                    <span id="mvSearchColLabel">{{ mv_col_labels.get(search_col, 'Todos') }}</span>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" id="mvSearchColMenu">
-                    <li><a class="dropdown-item" href="#" data-col="all">Todos</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#" data-col="tool">Ferramenta</a></li>
-                    {% if category == 'EMPRESTIMO' %}
-                    <li><a class="dropdown-item" href="#" data-col="employee">Funcionário</a></li>
-                    {% else %}
-                    <li><a class="dropdown-item" href="#" data-col="machine">Máquina</a></li>
-                    {% endif %}
-                    <li><a class="dropdown-item" href="#" data-col="type">Tipo</a></li>
-                    {% if category == 'EMPRESTIMO' %}
-                    <li><a class="dropdown-item" href="#" data-col="status">Status</a></li>
-                    {% endif %}
-                    <li><a class="dropdown-item" href="#" data-col="notes">Observações</a></li>
-                </ul>
-                <button class="btn btn-sm btn-outline-secondary" type="submit">Buscar</button>
-            </div>
+      {% if (selected_tool_id and selected_tool_id != 0) or search or date_from or date_to or is_admin %}
+      <div class="movements-toolbar-section movements-toolbar-section--actions">
+        <span class="movements-toolbar-label">Ações rápidas</span>
+        <div class="movements-toolbar-actions">
+          {% if (selected_tool_id and selected_tool_id != 0) or search or date_from or date_to %}
+          <a href="/movements?category={{ category }}&per_page={{ per_page }}" class="btn btn-sm btn-outline-secondary tools-action-btn">
+            <i class="bi bi-x-lg me-1"></i>Limpar filtros
+          </a>
+          {% endif %}
+          {% if is_admin %}
+          <button type="button" class="btn btn-sm btn-primary tools-action-btn"
+                  data-bs-toggle="modal" data-bs-target="#manualMovementModal">
+            <i class="bi bi-plus-lg me-1"></i>Adicionar manualmente
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="movements-toolbar-tier movements-toolbar-tier--filters">
+      <div class="movements-toolbar-section movements-toolbar-section--period">
+        <span class="movements-toolbar-label">Período</span>
+        <form method="GET" action="/movements" class="toolbar-inline-form" id="dateFilterForm">
+          <input type="hidden" name="category" value="{{ category }}">
+          <input type="hidden" name="sort" value="{{ sort }}">
+          <input type="hidden" name="search" value="{{ search }}">
+          <input type="hidden" name="search_col" value="{{ search_col }}">
+          <input type="hidden" name="tool_id" value="{{ selected_tool_id }}">
+          <input type="hidden" name="per_page" value="{{ per_page }}">
+          <input type="date" name="date_from" class="form-control form-control-sm movements-date-input"
+                 value="{{ date_from }}" title="Data inicial">
+          <span class="toolbar-separator">até</span>
+          <input type="date" name="date_to" class="form-control form-control-sm movements-date-input"
+                 value="{{ date_to }}" title="Data final">
+          <button type="submit" class="btn btn-sm btn-outline-secondary tools-action-btn" title="Filtrar por data">
+            <i class="bi bi-calendar-check"></i>
+          </button>
         </form>
+      </div>
+
+      <div class="movements-toolbar-section movements-toolbar-section--search">
+        <span class="movements-toolbar-label">Busca no histórico</span>
+        <form method="GET" action="/movements" class="tools-search-form movements-search-form" id="mvSearchForm">
+          <input type="hidden" name="category" value="{{ category }}">
+          <input type="hidden" name="tool_id" value="{{ selected_tool_id }}">
+          <input type="hidden" name="sort" value="{{ sort }}">
+          <input type="hidden" name="date_from" value="{{ date_from }}">
+          <input type="hidden" name="date_to" value="{{ date_to }}">
+          <input type="hidden" name="per_page" value="{{ per_page }}">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text tools-search-icon"><i class="bi bi-search"></i></span>
+            <input type="text" name="search" class="form-control form-control-sm" id="mvSearchInput"
+                   placeholder="Buscar..." value="{{ search }}">
+            <input type="hidden" name="search_col" id="mvSearchColInput" value="{{ search_col or 'all' }}">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                    data-bs-toggle="dropdown" aria-expanded="false" id="mvSearchColBtn">
+              <span id="mvSearchColLabel">{{ mv_col_labels.get(search_col, 'Todos') }}</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" id="mvSearchColMenu">
+              <li><a class="dropdown-item" href="#" data-col="all">Todos</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#" data-col="tool">Ferramenta</a></li>
+              {% if category == 'EMPRESTIMO' %}
+              <li><a class="dropdown-item" href="#" data-col="employee">Funcionário</a></li>
+              {% else %}
+              <li><a class="dropdown-item" href="#" data-col="machine">Máquina</a></li>
+              {% endif %}
+              <li><a class="dropdown-item" href="#" data-col="type">Tipo</a></li>
+              {% if category == 'EMPRESTIMO' %}
+              <li><a class="dropdown-item" href="#" data-col="status">Status</a></li>
+              {% endif %}
+              <li><a class="dropdown-item" href="#" data-col="notes">Observações</a></li>
+            </ul>
+            <button class="btn btn-sm btn-outline-secondary" type="submit">Buscar</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
   <div class="ops-feedback-bar">
     <div class="ops-feedback-summary">
-      <span class="ops-feedback-count">{{ movements|length }} movimenta{{ 'ção' if movements|length == 1 else 'ções' }}</span>
-      <span class="ops-feedback-label">
-        {{ 'Empréstimos' if category == 'EMPRESTIMO' else 'Reposições' }}
-        {% if (selected_tool_id and selected_tool_id != 0) or search or date_from or date_to %}
-        com filtros aplicados.
-        {% else %}
-        sem filtros adicionais.
-        {% endif %}
-      </span>
+      <span class="ops-feedback-count">{{ pagination.total_items }} movimenta{{ 'ção' if pagination.total_items == 1 else 'ções' }}</span>
+      <span class="ops-feedback-label">{{ 'Empréstimos' if category == 'EMPRESTIMO' else 'Reposições' }}</span>
     </div>
     <div class="ops-feedback-chips">
-      <span class="filter-chip filter-chip--static">
-        <i class="bi bi-arrow-left-right"></i>{{ 'Empréstimos' if category == 'EMPRESTIMO' else 'Reposições' }}
-      </span>
       {% if selected_tool_id and selected_tool_id != 0 %}
       <span class="filter-chip">
         <i class="bi bi-wrench"></i>{{ selected_tool.name }}
-        <a href="/movements?category={{ category }}&tool_id=0&sort={{ sort }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}" class="filter-chip-remove" title="Remover filtro da ferramenta">&times;</a>
+        <a href="/movements?category={{ category }}&tool_id=0&sort={{ sort }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&per_page={{ per_page }}" class="filter-chip-remove" title="Remover filtro da ferramenta">&times;</a>
       </span>
       {% endif %}
       {% if date_from or date_to %}
       <span class="filter-chip">
         <i class="bi bi-calendar3"></i>{{ date_from or 'Início aberto' }} até {{ date_to or 'Hoje' }}
-        <a href="/movements?category={{ category }}&tool_id={{ selected_tool_id }}&sort={{ sort }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}" class="filter-chip-remove" title="Remover filtro de data">&times;</a>
+        <a href="/movements?category={{ category }}&tool_id={{ selected_tool_id }}&sort={{ sort }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&per_page={{ per_page }}" class="filter-chip-remove" title="Remover filtro de data">&times;</a>
       </span>
       {% endif %}
       {% if search %}
       <span class="filter-chip">
         <i class="bi bi-search"></i>{{ search }}{% if search_col and search_col != 'all' %} · {{ mv_col_labels.get(search_col, 'Todos') }}{% endif %}
-        <a href="/movements?category={{ category }}&tool_id={{ selected_tool_id }}&sort={{ sort }}&search=&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}" class="filter-chip-remove" title="Remover busca">&times;</a>
-      </span>
-      {% endif %}
-      {% if not ((selected_tool_id and selected_tool_id != 0) or search or date_from or date_to) %}
-      <span class="filter-chip filter-chip--muted">
-        <i class="bi bi-stars"></i>Sem filtros adicionais
+        <a href="/movements?category={{ category }}&tool_id={{ selected_tool_id }}&sort={{ sort }}&search=&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&per_page={{ per_page }}" class="filter-chip-remove" title="Remover busca">&times;</a>
       </span>
       {% endif %}
     </div>
@@ -255,49 +273,83 @@
                                         <span class="text-muted">—</span>
                                     {% endif %}
                                 </td>
-                                <td class="text-center">
+                                <td class="text-center row-actions-cell">
+                                  <div class="row-action-cluster" role="group" aria-label="Ações para movimentação {{ m.id }}">
                                     {% if m.loan_status == "PENDENTE" %}
-                                        <form method="POST" action="/movements/{{ m.id }}/return" class="d-inline"
-                                              onsubmit="return confirm('Confirmar devolução de {{ m.tool.name }}?')">
-                                            <button class="btn btn-sm btn-success">
-                                                <i class="bi bi-box-arrow-in-left me-1"></i>Devolver
-                                            </button>
-                                        </form>
+                                      <form method="POST" action="/movements/{{ m.id }}/return" class="d-inline"
+                                          onsubmit="return confirm('Confirmar devolução de {{ m.tool.name }}?')">
+                                        <input type="hidden" name="redirect_to" value="{{ current_url }}">
+                                        <button class="btn btn-sm row-action-primary row-action-primary--success" type="submit">
+                                          <i class="bi bi-box-arrow-in-left"></i>
+                                          <span>Devolver</span>
+                                        </button>
+                                      </form>
+                                      {% if is_admin %}
+                                      <div class="row-action-icons" aria-label="Ações secundárias">
+                                        <button type="button" class="btn btn-sm row-action-icon row-action-icon--neutral mv-edit-btn"
+                                            title="Editar movimentação"
+                                            aria-label="Editar movimentação {{ m.id }}"
+                                            data-mv-id="{{ m.id }}"
+                                            data-mv-tool-id="{{ m.tool_id }}"
+                                            data-mv-tool-name="{{ m.tool.name }}"
+                                            data-mv-type="{{ m.movement_type }}"
+                                            data-mv-category="{{ m.category }}"
+                                            data-mv-quantity="{{ m.quantity }}"
+                                            data-mv-timestamp="{{ m.timestamp.strftime('%Y-%m-%dT%H:%M') }}"
+                                            data-mv-employee-id="{{ m.employee_id or '' }}"
+                                            data-mv-machine-id="{{ m.machine_id or '' }}"
+                                            data-mv-unit-cost="{{ '%.2f' % (m.unit_cost or 0) }}"
+                                            data-mv-loan-status="{{ m.loan_status or '' }}"
+                                            data-mv-return-ts="{{ m.return_timestamp.strftime('%Y-%m-%dT%H:%M') if m.return_timestamp else '' }}"
+                                            data-mv-notes="{{ m.notes or '' }}">
+                                          <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm row-action-icon row-action-icon--danger mv-delete-btn"
+                                            title="Excluir movimentação"
+                                            aria-label="Excluir movimentação {{ m.id }}"
+                                            data-mv-id="{{ m.id }}"
+                                            data-mv-label="{{ m.tool.name }} ({{ m.timestamp.strftime('%d/%m/%Y %H:%M') }})">
+                                          <i class="bi bi-trash3"></i>
+                                        </button>
+                                      </div>
+                                      {% endif %}
+                                    {% elif is_admin %}
+                                      <button type="button" class="btn btn-sm row-action-primary row-action-primary--neutral mv-edit-btn"
+                                          title="Editar movimentação"
+                                          data-mv-id="{{ m.id }}"
+                                          data-mv-tool-id="{{ m.tool_id }}"
+                                          data-mv-tool-name="{{ m.tool.name }}"
+                                          data-mv-type="{{ m.movement_type }}"
+                                          data-mv-category="{{ m.category }}"
+                                          data-mv-quantity="{{ m.quantity }}"
+                                          data-mv-timestamp="{{ m.timestamp.strftime('%Y-%m-%dT%H:%M') }}"
+                                          data-mv-employee-id="{{ m.employee_id or '' }}"
+                                          data-mv-machine-id="{{ m.machine_id or '' }}"
+                                          data-mv-unit-cost="{{ '%.2f' % (m.unit_cost or 0) }}"
+                                          data-mv-loan-status="{{ m.loan_status or '' }}"
+                                          data-mv-return-ts="{{ m.return_timestamp.strftime('%Y-%m-%dT%H:%M') if m.return_timestamp else '' }}"
+                                          data-mv-notes="{{ m.notes or '' }}">
+                                        <i class="bi bi-pencil"></i>
+                                        <span>Editar</span>
+                                      </button>
+                                      <div class="row-action-icons" aria-label="Ações secundárias">
+                                        <button type="button" class="btn btn-sm row-action-icon row-action-icon--danger mv-delete-btn"
+                                            title="Excluir movimentação"
+                                            aria-label="Excluir movimentação {{ m.id }}"
+                                            data-mv-id="{{ m.id }}"
+                                            data-mv-label="{{ m.tool.name }} ({{ m.timestamp.strftime('%d/%m/%Y %H:%M') }})">
+                                          <i class="bi bi-trash3"></i>
+                                        </button>
+                                      </div>
                                     {% else %}
-                                        <span class="text-muted small">—</span>
+                                      <span class="text-muted small">—</span>
                                     {% endif %}
-                                    {% if is_admin %}
-                                        <div class="d-flex gap-1 justify-content-center mt-1">
-                                            <button type="button" class="btn btn-sm btn-outline-primary mv-edit-btn"
-                                                    title="Editar movimentação"
-                                                    data-mv-id="{{ m.id }}"
-                                                    data-mv-tool-id="{{ m.tool_id }}"
-                                                    data-mv-tool-name="{{ m.tool.name }}"
-                                                    data-mv-type="{{ m.movement_type }}"
-                                                    data-mv-category="{{ m.category }}"
-                                                    data-mv-quantity="{{ m.quantity }}"
-                                                    data-mv-timestamp="{{ m.timestamp.strftime('%Y-%m-%dT%H:%M') }}"
-                                                    data-mv-employee-id="{{ m.employee_id or '' }}"
-                                                    data-mv-machine-id="{{ m.machine_id or '' }}"
-                                                    data-mv-unit-cost="{{ '%.2f' % (m.unit_cost or 0) }}"
-                                                    data-mv-loan-status="{{ m.loan_status or '' }}"
-                                                    data-mv-return-ts="{{ m.return_timestamp.strftime('%Y-%m-%dT%H:%M') if m.return_timestamp else '' }}"
-                                                    data-mv-notes="{{ m.notes or '' }}">
-                                                <i class="bi bi-pencil"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-danger mv-delete-btn"
-                                                    title="Excluir movimentação"
-                                                    data-mv-id="{{ m.id }}"
-                                                    data-mv-label="{{ m.tool.name }} ({{ m.timestamp.strftime('%d/%m/%Y %H:%M') }})">
-                                                <i class="bi bi-x-lg"></i>
-                                            </button>
-                                        </div>
-                                    {% endif %}
+                                  </div>
                                 </td>
                             {% elif is_admin %}
-                                <td class="text-center">
-                                    <div class="d-flex gap-1 justify-content-center">
-                                        <button type="button" class="btn btn-sm btn-outline-primary mv-edit-btn"
+                                <td class="text-center row-actions-cell">
+                                  <div class="row-action-cluster" role="group" aria-label="Ações para movimentação {{ m.id }}">
+                                    <button type="button" class="btn btn-sm row-action-primary row-action-primary--neutral mv-edit-btn"
                                                 title="Editar movimentação"
                                                 data-mv-id="{{ m.id }}"
                                                 data-mv-tool-id="{{ m.tool_id }}"
@@ -312,14 +364,18 @@
                                                 data-mv-loan-status="{{ m.loan_status or '' }}"
                                                 data-mv-return-ts="{{ m.return_timestamp.strftime('%Y-%m-%dT%H:%M') if m.return_timestamp else '' }}"
                                                 data-mv-notes="{{ m.notes or '' }}">
-                                            <i class="bi bi-pencil"></i>
+                                              <i class="bi bi-pencil"></i>
+                                              <span>Editar</span>
                                         </button>
-                                        <button type="button" class="btn btn-sm btn-outline-danger mv-delete-btn"
-                                                title="Excluir movimentação"
-                                                data-mv-id="{{ m.id }}"
-                                                data-mv-label="{{ m.tool.name }} ({{ m.timestamp.strftime('%d/%m/%Y %H:%M') }})">
-                                            <i class="bi bi-x-lg"></i>
-                                        </button>
+                                        <div class="row-action-icons" aria-label="Ações secundárias">
+                                          <button type="button" class="btn btn-sm row-action-icon row-action-icon--danger mv-delete-btn"
+                                              title="Excluir movimentação"
+                                              aria-label="Excluir movimentação {{ m.id }}"
+                                              data-mv-id="{{ m.id }}"
+                                              data-mv-label="{{ m.tool.name }} ({{ m.timestamp.strftime('%d/%m/%Y %H:%M') }})">
+                                            <i class="bi bi-trash3"></i>
+                                          </button>
+                                        </div>
                                     </div>
                                 </td>
                             {% endif %}
@@ -334,7 +390,7 @@
                                     <span class="text-muted">Nenhuma movimentação encontrada{% if selected_tool_id and selected_tool_id != 0 %} com os filtros atuais{% endif %}.</span>
                                     {% if selected_tool_id and selected_tool_id != 0 %}
                                     <div class="mt-2">
-                                        <a href="/movements?category={{ category }}" class="btn btn-sm btn-outline-secondary">
+                                      <a href="/movements?category={{ category }}&per_page={{ per_page }}" class="btn btn-sm btn-outline-secondary">
                                             <i class="bi bi-x-lg me-1"></i>Limpar filtros
                                         </a>
                                     </div>
@@ -346,6 +402,7 @@
                 </tbody>
             </table>
         </div>
+            {% include "partials/pagination.html" %}
     </div>
 </div>
 

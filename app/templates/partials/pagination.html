@@ -1,0 +1,51 @@
+{% if pagination and pagination.total_items %}
+<div class="pagination-shell">
+    <div class="pagination-meta">
+        <span class="pagination-range">Mostrando {{ pagination.start_item }}-{{ pagination.end_item }} de {{ pagination.total_items }}</span>
+        <span class="pagination-page-state">Página {{ pagination.page }} de {{ pagination.total_pages }}</span>
+    </div>
+    <div class="pagination-controls">
+        <form method="GET" action="{{ pagination.base_path }}" class="pagination-size-form">
+            {% for name, value in pagination.form_params.items() %}
+            <input type="hidden" name="{{ name }}" value="{{ value }}">
+            {% endfor %}
+            <input type="hidden" name="page" value="1">
+            <label class="pagination-size-label" for="{{ pagination.id_prefix }}PerPage">Por página</label>
+            <select class="form-select form-select-sm" name="per_page" id="{{ pagination.id_prefix }}PerPage" onchange="this.form.submit()">
+                {% for option in pagination.per_page_options %}
+                <option value="{{ option }}" {% if pagination.per_page == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        {% if pagination.total_pages > 1 %}
+        <nav aria-label="Paginação">
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item {% if not pagination.prev_url %}disabled{% endif %}">
+                    {% if pagination.prev_url %}
+                    <a class="page-link" href="{{ pagination.prev_url }}">Anterior</a>
+                    {% else %}
+                    <span class="page-link">Anterior</span>
+                    {% endif %}
+                </li>
+                {% for item in pagination.page_links %}
+                {% if item.kind == 'ellipsis' %}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+                {% else %}
+                <li class="page-item {% if item.current %}active{% endif %}">
+                    <a class="page-link" href="{{ item.url }}">{{ item.label }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+                <li class="page-item {% if not pagination.next_url %}disabled{% endif %}">
+                    {% if pagination.next_url %}
+                    <a class="page-link" href="{{ pagination.next_url }}">Próxima</a>
+                    {% else %}
+                    <span class="page-link">Próxima</span>
+                    {% endif %}
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
