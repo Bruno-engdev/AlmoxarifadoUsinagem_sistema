@@ -13,10 +13,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.database import init_db
 from app.auth import (
     get_current_user,
-    seed_admin,
     _LoginRequired,
     _AdminRequired,
 )
@@ -95,21 +93,38 @@ app.include_router(notifications_router.router)
 
 # ---------------------------------------------------------------------------
 # Startup
+#
+# Schema lifecycle (Alembic) and seeding are handled OUTSIDE the web process
+# (entrypoint.sh in Docker, or `python -m app.cli seed` locally). The web
+# startup hook only performs runtime housekeeping that is safe to repeat and
+# requires the schema to already exist.
+#
+# For pure SQLite local-dev convenience, set AUTO_BOOTSTRAP=1 to recreate the
+# SQLite schema and seed defaults on startup.
 # ---------------------------------------------------------------------------
 
 @app.on_event("startup")
 def on_startup():
-    """Initialize the database, seed defaults, and scan stock for missing alerts."""
-    init_db()
-    seed_admin()
+    import os
 
-    # Scan all tools for missing stock alerts
-    from app.database import SessionLocal
-    from app.services.notifications import scan_all_tools
-    db = SessionLocal()
+    if os.getenv("AUTO_BOOTSTRAP") == "1":
+        from app.database import init_db
+        from app.auth import seed_admin
+        init_db()
+        seed_admin()
+        print("[startup] AUTO_BOOTSTRAP=1: SQLite schema and defaults ensured.")
+
+    # Runtime housekeeping: scan tools for missing stock alerts. Safe to skip
+    # if the schema is not ready yet (fresh DB before migrations / seed).
     try:
-        count = scan_all_tools(db)
-        if count:
-            print(f"[startup] Created {count} missing stock alert(s).")
-    finally:
-        db.close()
+        from app.database import SessionLocal
+        from app.services.notifications import scan_all_tools
+        db = SessionLocal()
+        try:
+            count = scan_all_tools(db)
+            if count:
+                print(f"[startup] Created {count} missing stock alert(s).")
+        finally:
+            db.close()
+    except Exception as exc:  # pragma: no cover - defensive
+        print(f"[startup] alert scan skipped: {exc}")

@@ -1,176 +1,235 @@
 ﻿{% extends "base.html" %}
 {% set active_page = "dashboard" %}
 
-{% block title %}Painel – Almoxarifado de Ferramentas{% endblock %}
-{% block topbar_title %}<i class="bi bi-speedometer2 me-2"></i>Painel{% endblock %}
+{% block title %}Dashboard – Almoxarifado de Ferramentas{% endblock %}
+{% block topbar_title %}Dashboard e indicadores{% endblock %}
 
 {% block content %}
+{% set selected_type = namespace(name='Todos os tipos') %}
+{% if f_tool_type_id %}
+    {% for tt in tool_types %}
+        {% if tt.id == f_tool_type_id %}
+            {% set selected_type.name = tt.name %}
+        {% endif %}
+    {% endfor %}
+{% endif %}
 
-<!-- ================================================================ -->
-<!-- FILTER BAR                                                       -->
-<!-- ================================================================ -->
-<div class="card mb-3 shadow-sm">
-    <div class="card-body py-3">
-        <form method="get" action="/" id="filterForm" class="row g-2 align-items-end">
-            <div class="col-lg col-md-6">
-                <label class="form-label mb-1 small">Data Início</label>
-                <input type="date" class="form-control form-control-sm"
-                       name="date_from" value="{{ f_date_from }}">
-            </div>
-            <div class="col-lg col-md-6">
-                <label class="form-label mb-1 small">Data Fim</label>
-                <input type="date" class="form-control form-control-sm"
-                       name="date_to" value="{{ f_date_to }}">
-            </div>
-            <div class="col-lg col-md-6">
-                <label class="form-label mb-1 small">Tipo de Ferramenta</label>
-                <select class="form-select form-select-sm" name="tool_type_id">
-                    <option value="0">Todos</option>
-                    {% for tt in tool_types %}
-                    <option value="{{ tt.id }}"
-                        {% if tt.id == f_tool_type_id %}selected{% endif %}>{{ tt.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-lg col-md-6">
-                <label class="form-label mb-1 small">Modelo / Nome</label>
-                <input type="text" class="form-control form-control-sm"
-                       name="tool_name" value="{{ f_tool_name }}"
-                       placeholder="Buscar por nome...">
-            </div>
-            <div class="col-auto d-flex gap-2">
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="bi bi-funnel me-1"></i>Filtrar
-                </button>
-                <a href="/" class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-x-lg me-1"></i>Limpar
-                </a>
-            </div>
-        </form>
-        <div class="row mt-3 g-3">
-            <div class="col-xl-3 col-md-6">
-                <div class="card kpi-card h-100 shadow-sm">
-                    <div class="card-body d-flex align-items-center">
-                        <div class="kpi-icon kpi-icon-blue"><i class="bi bi-graph-down"></i></div>
-                        <div>
-                            <h3 class="mb-0" id="kpi-consumption">{{ consumption_period }}</h3>
-                            <small class="text-muted">Consumo no Período</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<section class="dashboard-hero">
+    <div class="dashboard-hero-copy">
+        <span class="dashboard-eyebrow">Operação e inteligência de estoque</span>
+        <h1 class="dashboard-hero-title">Visão geral do almoxarifado de usinagem</h1>
+        <p class="dashboard-hero-text">
+            Acompanhe consumo, capital imobilizado, disponibilidade crítica e sinais de obsolescência em uma leitura única.
+        </p>
+        <div class="dashboard-hero-chips">
+            <span class="dashboard-chip">
+                <i class="bi bi-calendar3"></i>
+                {% if f_date_from or f_date_to %}
+                    {{ f_date_from or 'Início aberto' }} até {{ f_date_to or 'Hoje' }}
+                {% else %}
+                    Período completo
+                {% endif %}
+            </span>
+            <span class="dashboard-chip">
+                <i class="bi bi-tags"></i>{{ selected_type.name }}
+            </span>
+            {% if f_tool_name %}
+            <span class="dashboard-chip">
+                <i class="bi bi-search"></i>{{ f_tool_name }}
+            </span>
+            {% endif %}
+            <span class="dashboard-chip">
+                <i class="bi bi-clock-history"></i>{{ f_idle_days }} dias sem movimentação
+            </span>
+        </div>
+    </div>
 
-                <div class="col-xl-3 col-md-6">
-                    <div class="card kpi-card h-100 shadow-sm">
-                        <div class="card-body d-flex align-items-center">
-                            <div class="kpi-icon kpi-icon-green"><i class="bi bi-currency-dollar"></i></div>
-                            <div>
-                                <h4 class="mb-0" id="kpi-stock-value">R$ {{ "%.2f"|format(total_stock_value) }}</h4>
-                                <small class="text-muted">Valor Total em Estoque</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-xl-3 col-md-6">
-                    <div class="card kpi-card h-100 shadow-sm">
-                        <div class="card-body d-flex align-items-center">
-                            <div class="kpi-icon kpi-icon-red"><i class="bi bi-exclamation-triangle"></i></div>
-                            <div>
-                                <h3 class="mb-0" id="kpi-below">{{ tools_below_count }}</h3>
-                                <small class="text-muted">Abaixo do Mínimo</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <div class="dashboard-hero-highlight">
+        <span class="dashboard-highlight-label">Disponibilidade crítica</span>
+        <strong class="dashboard-highlight-value">{{ critical_avail.pct }}%</strong>
+        <span class="dashboard-highlight-support">
+            {{ critical_avail.ok }} de {{ critical_avail.total }} itens críticos estão acima do mínimo.
+        </span>
+    </div>
+</section>
 
-                <div class="col-xl-3 col-md-6">
-                    <div class="card kpi-card h-100 shadow-sm">
-                        <div class="card-body d-flex align-items-center">
-                            <div class="kpi-icon kpi-icon-teal"><i class="bi bi-shield-check"></i></div>
-                            <div>
-                                <h4 class="mb-0" id="kpi-critical">{{ critical_avail.pct }}%</h4>
-                                <small class="text-muted">Disp. Críticas</small>
-                                <div class="text-muted small">{{ critical_avail.ok }} / {{ critical_avail.total }}</div>
-                            </div>
-                        </div>
-                    </div>
+<section class="dashboard-filter-panel mb-4">
+    <div class="dashboard-filter-header">
+        <div>
+            <span class="dashboard-section-kicker">Filtro analítico</span>
+            <h2 class="dashboard-filter-title">Refine a leitura sem perder contexto</h2>
+            <p class="dashboard-section-copy mb-0">
+                Combine período, tipo e busca para recalcular todos os indicadores e gráficos da página.
+            </p>
+        </div>
+    </div>
+
+    <form method="get" action="/" id="filterForm" class="row g-3 align-items-end">
+        <div class="col-lg col-md-6">
+            <label class="form-label">Data Início</label>
+            <input type="date" class="form-control form-control-sm"
+                   name="date_from" value="{{ f_date_from }}">
+        </div>
+        <div class="col-lg col-md-6">
+            <label class="form-label">Data Fim</label>
+            <input type="date" class="form-control form-control-sm"
+                   name="date_to" value="{{ f_date_to }}">
+        </div>
+        <div class="col-lg col-md-6">
+            <label class="form-label">Tipo de Ferramenta</label>
+            <select class="form-select form-select-sm" name="tool_type_id">
+                <option value="0">Todos</option>
+                {% for tt in tool_types %}
+                <option value="{{ tt.id }}"
+                    {% if tt.id == f_tool_type_id %}selected{% endif %}>{{ tt.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-lg col-md-6">
+            <label class="form-label">Modelo / Nome</label>
+            <input type="text" class="form-control form-control-sm"
+                   name="tool_name" value="{{ f_tool_name }}"
+                   placeholder="Buscar por nome...">
+        </div>
+        <div class="col-12 col-xl-auto d-flex flex-wrap gap-2 dashboard-filter-actions">
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="bi bi-funnel me-1"></i>Filtrar
+            </button>
+            <a href="/" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-x-lg me-1"></i>Limpar
+            </a>
+        </div>
+    </form>
+</section>
+
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card dashboard-kpi dashboard-kpi-blue h-100">
+            <div class="card-body">
+                <div class="dashboard-kpi-head">
+                    <div class="kpi-icon kpi-icon-blue"><i class="bi bi-graph-down"></i></div>
+                    <div class="dashboard-kpi-label">Consumo acumulado</div>
                 </div>
+                <div class="dashboard-kpi-value" id="kpi-consumption">{{ consumption_period }}</div>
+                <div class="dashboard-kpi-note">Saídas registradas dentro do recorte atualmente selecionado.</div>
             </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card dashboard-kpi dashboard-kpi-green h-100">
+            <div class="card-body">
+                <div class="dashboard-kpi-head">
+                    <div class="kpi-icon kpi-icon-green"><i class="bi bi-currency-dollar"></i></div>
+                    <div class="dashboard-kpi-label">Capital em estoque</div>
+                </div>
+                <div class="dashboard-kpi-value" id="kpi-stock-value">R$ {{ "%.2f"|format(total_stock_value) }}</div>
+                <div class="dashboard-kpi-note">Valor estimado considerando o custo unitário atual das ferramentas.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card dashboard-kpi dashboard-kpi-red h-100">
+            <div class="card-body">
+                <div class="dashboard-kpi-head">
+                    <div class="kpi-icon kpi-icon-red"><i class="bi bi-exclamation-triangle"></i></div>
+                    <div class="dashboard-kpi-label">Itens em atenção</div>
+                </div>
+                <div class="dashboard-kpi-value" id="kpi-below">{{ tools_below_count }}</div>
+                <div class="dashboard-kpi-note">Ferramentas abaixo do mínimo e com necessidade de intervenção.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card dashboard-kpi dashboard-kpi-teal h-100">
+            <div class="card-body">
+                <div class="dashboard-kpi-head">
+                    <div class="kpi-icon kpi-icon-teal"><i class="bi bi-shield-check"></i></div>
+                    <div class="dashboard-kpi-label">Cobertura crítica</div>
+                </div>
+                <div class="dashboard-kpi-value" id="kpi-critical">{{ critical_avail.pct }}%</div>
+                <div class="dashboard-kpi-note">{{ critical_avail.ok }} de {{ critical_avail.total }} itens críticos estão cobertos.</div>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- ================================================================ -->
-<!-- CHARTS – Row 1: Consumption + Entries vs Exits                   -->
-<!-- ================================================================ -->
+<div class="dashboard-section-heading">
+    <div>
+        <span class="dashboard-section-kicker">Análises</span>
+        <h2 class="dashboard-section-title">Fluxo de consumo e composição do estoque</h2>
+        <p class="dashboard-section-copy mb-0">Visualize tendência, equilíbrio entre entradas e saídas e concentração de uso por ferramenta.</p>
+    </div>
+</div>
 
 <div class="row g-4 mb-4">
     <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header"><i class="bi bi-bar-chart me-1"></i> Consumo Mensal</div>
+        <div class="card dashboard-panel h-100">
+            <div class="card-header"><i class="bi bi-bar-chart"></i>Consumo Mensal</div>
             <div class="card-body">
-                <canvas id="chartMonthly"></canvas>
+                <canvas id="chartMonthly" class="dashboard-chart dashboard-chart-tall"></canvas>
             </div>
         </div>
     </div>
     <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header"><i class="bi bi-arrow-down-up me-1"></i> Entradas vs Saídas</div>
+        <div class="card dashboard-panel h-100">
+            <div class="card-header"><i class="bi bi-arrow-down-up"></i>Entradas vs Saídas</div>
             <div class="card-body">
-                <canvas id="chartInOut"></canvas>
+                <canvas id="chartInOut" class="dashboard-chart dashboard-chart-tall"></canvas>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ================================================================ -->
-<!-- CHARTS – Row 2: Top Consumed + Stock by Type                     -->
-<!-- ================================================================ -->
 <div class="row g-4 mb-4">
     <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header"><i class="bi bi-trophy me-1"></i> Top 10 Ferramentas Mais Consumidas</div>
+        <div class="card dashboard-panel h-100">
+            <div class="card-header"><i class="bi bi-trophy"></i>Top 10 Ferramentas Mais Consumidas</div>
             <div class="card-body">
-                <canvas id="chartTop10"></canvas>
+                <canvas id="chartTop10" class="dashboard-chart"></canvas>
             </div>
         </div>
     </div>
     <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header"><i class="bi bi-pie-chart me-1"></i> Estoque por Tipo de Ferramenta</div>
+        <div class="card dashboard-panel h-100">
+            <div class="card-header"><i class="bi bi-pie-chart"></i>Estoque por Tipo de Ferramenta</div>
             <div class="card-body d-flex align-items-center justify-content-center">
-                <canvas id="chartStockType" style="max-height:320px;"></canvas>
+                <canvas id="chartStockType" class="dashboard-chart dashboard-chart-compact"></canvas>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ================================================================ -->
-<!-- CHART – Monthly Cost                                             -->
-<!-- ================================================================ -->
 <div class="row g-4 mb-4">
-    <div class="col-lg-12">
-        <div class="card shadow-sm h-100">
-            <div class="card-header"><i class="bi bi-cash-stack me-1"></i> Custo Mensal de Consumo (R$)</div>
+    <div class="col-12">
+        <div class="card dashboard-panel h-100">
+            <div class="card-header"><i class="bi bi-cash-stack"></i>Custo Mensal de Consumo (R$)</div>
             <div class="card-body">
-                <canvas id="chartCost"></canvas>
+                <canvas id="chartCost" class="dashboard-chart"></canvas>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ================================================================ -->
-<!-- TABLES – Low Stock + Recent Movements                            -->
-<!-- ================================================================ -->
+<div class="dashboard-section-heading">
+    <div>
+        <span class="dashboard-section-kicker">Operação</span>
+        <h2 class="dashboard-section-title">Alertas imediatos e movimentação recente</h2>
+        <p class="dashboard-section-copy mb-0">Os dois painéis abaixo concentram o risco operacional do dia e o histórico mais recente.</p>
+    </div>
+</div>
+
 <div class="row g-4 mb-4">
-    <!-- Low stock table -->
     <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
+        <div class="card dashboard-panel h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-exclamation-triangle me-1"></i> Ferramentas Abaixo do Mínimo</span>
+                <span><i class="bi bi-exclamation-triangle me-1"></i>Ferramentas Abaixo do Mínimo</span>
                 <span class="badge bg-danger">{{ tools_below_count }}</span>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive" style="max-height:360px; overflow-y:auto;">
+                <div class="table-responsive dashboard-table-scroll">
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-dark sticky-top">
                             <tr>
@@ -183,7 +242,7 @@
                         <tbody>
                         {% for t in tools_below %}
                             <tr>
-                                <td><a href="/tools/{{ t.id }}" class="text-decoration-none">{{ t.name }}</a></td>
+                                <td><a href="/tools/{{ t.id }}" class="dashboard-table-link">{{ t.name }}</a></td>
                                 <td class="text-center fw-bold {% if t.current_stock <= 0 %}text-danger{% endif %}">{{ t.current_stock }}</td>
                                 <td class="text-center">{{ t.min_stock }}</td>
                                 <td class="text-center">
@@ -205,14 +264,13 @@
         </div>
     </div>
 
-    <!-- Recent movements table -->
     <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
+        <div class="card dashboard-panel h-100">
             <div class="card-header">
-                <i class="bi bi-clock-history me-1"></i> Últimas 10 Movimentações
+                <i class="bi bi-clock-history"></i>Últimas 10 Movimentações
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive" style="max-height:360px; overflow-y:auto;">
+                <div class="table-responsive dashboard-table-scroll">
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-dark sticky-top">
                             <tr>
@@ -254,18 +312,20 @@
     </div>
 </div>
 
-<!-- ================================================================ -->
-<!-- TABLE – Idle tools + Predictions                                 -->
-<!-- ================================================================ -->
+<div class="dashboard-section-heading">
+    <div>
+        <span class="dashboard-section-kicker">Portfólio</span>
+        <h2 class="dashboard-section-title">Parados, sobreconsumo e capital ocioso</h2>
+        <p class="dashboard-section-copy mb-0">A base final da página ficou mais equilibrada e agora reúne os sinais de manutenção e obsolescência em uma mesma leitura.</p>
+    </div>
+</div>
+
 <div class="row g-4 mb-4">
-    <!-- Idle tools -->
-    <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
+    <div class="col-xl-4 col-md-6">
+        <div class="card dashboard-panel h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-pause-circle me-1"></i> Ferramentas sem Movimentação</span>
-                <form method="get" action="/" class="d-flex align-items-center gap-2 mb-0"
-                      style="max-width:220px;">
-                    <!-- preserve existing filters -->
+                <span><i class="bi bi-pause-circle me-1"></i>Ferramentas sem Movimentação</span>
+                <form method="get" action="/" class="d-flex align-items-center gap-2 mb-0" style="max-width:220px;">
                     <input type="hidden" name="date_from" value="{{ f_date_from }}">
                     <input type="hidden" name="date_to" value="{{ f_date_to }}">
                     <input type="hidden" name="tool_type_id" value="{{ f_tool_type_id }}">
@@ -280,7 +340,7 @@
                 </form>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive" style="max-height:320px; overflow-y:auto;">
+                <div class="table-responsive dashboard-table-scroll-compact">
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-dark sticky-top">
                             <tr>
@@ -307,21 +367,14 @@
         </div>
     </div>
 
-</div>
-
-<!-- ================================================================ -->
-<!-- TABLES – High Maintenance + Rarely Used / Obsolete               -->
-<!-- ================================================================ -->
-<div class="row g-4 mb-4">
-    <!-- High maintenance tools -->
-    <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
+    <div class="col-xl-4 col-md-6">
+        <div class="card dashboard-panel h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-tools me-1"></i> Ferramentas com Alto Consumo (6 meses)</span>
+                <span><i class="bi bi-tools me-1"></i>Ferramentas com Alto Consumo (6 meses)</span>
                 <span class="badge bg-warning text-dark">{{ high_maint|length }}</span>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive" style="max-height:320px; overflow-y:auto;">
+                <div class="table-responsive dashboard-table-scroll-compact">
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-dark sticky-top">
                             <tr>
@@ -346,15 +399,14 @@
         </div>
     </div>
 
-    <!-- Rarely used / obsolete candidates -->
-    <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
+    <div class="col-xl-4 col-md-12">
+        <div class="card dashboard-panel h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-archive me-1"></i> Ferramentas Raramente Usadas / Obsoletas</span>
+                <span><i class="bi bi-archive me-1"></i>Ferramentas Raramente Usadas / Obsoletas</span>
                 <span class="badge bg-secondary">{{ rarely_used|length }}</span>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive" style="max-height:320px; overflow-y:auto;">
+                <div class="table-responsive dashboard-table-scroll-compact">
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-dark sticky-top">
                             <tr>
@@ -388,10 +440,48 @@
 {% block scripts %}
 <script>
 /* ====== Chart defaults for dark theme ====== */
-Chart.defaults.color = '#a6adc8';
-Chart.defaults.borderColor = 'rgba(59,59,83,0.5)';
-const PALETTE = ['#89b4fa','#a6e3a1','#f38ba8','#f9e2af','#cba6f7',
-                 '#94e2d5','#fab387','#74c7ec','#b4befe','#eba0ac'];
+const theme = getComputedStyle(document.documentElement);
+const readThemeColor = (name) => theme.getPropertyValue(name).trim();
+const hexToRgba = (hex, alpha) => {
+    const normalized = hex.replace('#', '');
+    const fullHex = normalized.length === 3
+        ? normalized.split('').map((char) => char + char).join('')
+        : normalized;
+    const value = Number.parseInt(fullHex, 16);
+    const red = (value >> 16) & 255;
+    const green = (value >> 8) & 255;
+    const blue = value & 255;
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+};
+
+const accentBlue = readThemeColor('--accent-blue');
+const accentGreen = readThemeColor('--accent-green');
+const accentRed = readThemeColor('--accent-red');
+const accentYellow = readThemeColor('--accent-yellow');
+const accentPurple = readThemeColor('--accent-purple');
+const accentTeal = readThemeColor('--accent-teal');
+const accentOrange = readThemeColor('--accent-orange');
+
+Chart.defaults.color = readThemeColor('--text-secondary');
+Chart.defaults.borderColor = hexToRgba(readThemeColor('--border-color'), 0.55);
+
+const PALETTE = [
+    hexToRgba(accentBlue, 0.84),
+    hexToRgba(accentGreen, 0.84),
+    hexToRgba(accentRed, 0.84),
+    hexToRgba(accentYellow, 0.84),
+    hexToRgba(accentPurple, 0.84),
+    hexToRgba(accentTeal, 0.84),
+    hexToRgba(accentOrange, 0.84),
+    'rgba(139, 188, 255, 0.84)',
+    'rgba(110, 175, 211, 0.84)',
+    'rgba(165, 149, 223, 0.84)',
+];
+
+const primaryFill = hexToRgba(accentBlue, 0.72);
+const successFill = hexToRgba(accentGreen, 0.72);
+const dangerFill = hexToRgba(accentRed, 0.72);
+const warningFill = hexToRgba(accentYellow, 0.18);
 
 /* ---- Monthly Consumption ---- */
 const ctxMonthly = document.getElementById('chartMonthly');
@@ -403,8 +493,8 @@ if (ctxMonthly) {
             datasets: [{
                 label: 'Unidades Consumidas',
                 data: {{ chart_data | tojson }},
-                backgroundColor: 'rgba(137,180,250,0.7)',
-                borderColor: '#89b4fa',
+                backgroundColor: primaryFill,
+                borderColor: accentBlue,
                 borderWidth: 1,
                 borderRadius: 4,
             }]
@@ -428,16 +518,16 @@ if (ctxIO) {
                 {
                     label: 'Entradas',
                     data: {{ io_in | tojson }},
-                    backgroundColor: 'rgba(166,227,161,0.7)',
-                    borderColor: '#a6e3a1',
+                    backgroundColor: successFill,
+                    borderColor: accentGreen,
                     borderWidth: 1,
                     borderRadius: 4,
                 },
                 {
                     label: 'Saídas',
                     data: {{ io_out | tojson }},
-                    backgroundColor: 'rgba(243,139,168,0.7)',
-                    borderColor: '#f38ba8',
+                    backgroundColor: dangerFill,
+                    borderColor: accentRed,
                     borderWidth: 1,
                     borderRadius: 4,
                 }
@@ -461,7 +551,7 @@ if (ctxTop) {
             datasets: [{
                 label: 'Total Consumido',
                 data: {{ top_data | tojson }},
-                backgroundColor: 'rgba(137,180,250,0.7)',
+                backgroundColor: primaryFill,
                 borderRadius: 4,
             }]
         },
@@ -507,12 +597,12 @@ if (ctxCost) {
             datasets: [{
                 label: 'Custo (R$)',
                 data: {{ cost_data | tojson }},
-                borderColor: 'rgba(137,180,250,0.7)',
-                backgroundColor: 'rgba(249,226,175,0.15)',
+                borderColor: accentBlue,
+                backgroundColor: warningFill,
                 fill: true,
                 tension: 0.3,
                 pointRadius: 4,
-                pointBackgroundColor: 'rgba(137,180,250,0.7)',
+                pointBackgroundColor: accentBlue,
                 borderWidth: 2,
                 
             }]

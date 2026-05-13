@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Tool, ToolType, ToolParameter, Employee, Machine
 from app.auth import require_login
+from app.pagination import paginate_query
 from app.services.movements import register_movement
 
 router = APIRouter(prefix="/tools", tags=["tools"], dependencies=[Depends(require_login)])
@@ -54,10 +55,22 @@ def tools_list(
     request: Request,
     search: str = Query("", alias="search"),
     search_col: str = Query("all", alias="search_col"),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(25, alias="per_page"),
     db: Session = Depends(get_db),
 ):
     """Display tools table with search and status highlighting."""
-    tools = _filtered_tools_query(db, search, search_col).all()
+    tools, pagination = paginate_query(
+        _filtered_tools_query(db, search, search_col),
+        base_path=request.url.path,
+        params={
+            "search": search,
+            "search_col": search_col,
+        },
+        page=page,
+        per_page=per_page,
+        id_prefix="tools",
+    )
 
     employees = db.query(Employee).order_by(Employee.name).all()
     machines = db.query(Machine).order_by(Machine.name).all()
@@ -71,6 +84,9 @@ def tools_list(
             "machines": machines,
             "search": search,
             "search_col": search_col,
+            "page": pagination["page"],
+            "per_page": pagination["per_page"],
+            "pagination": pagination,
         },
     )
 
