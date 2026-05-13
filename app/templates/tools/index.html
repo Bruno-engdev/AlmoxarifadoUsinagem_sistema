@@ -2,92 +2,141 @@
 {% set active_page = "tools" %}
 
 {% block title %}Ferramentas – Almoxarifado{% endblock %}
-{% block topbar_title %}<i class="bi bi-wrench me-2"></i>Estoque de Ferramentas{% endblock %}
+{% block topbar_title %}Estoque de Ferramentas{% endblock %}
 
 {% block content %}
+{% set col_label_map = {'all': 'Todos', 'name': 'Nome', 'origin_id': 'ID TOTVS', 'tool_type': 'Tipo', 'location': 'Localização', 'status': 'Status'} %}
 <!-- ====== Toolbar: actions left, search right ====== -->
-<div class="tools-toolbar">
-    <div class="tools-toolbar-left">
-        <a href="/tools/create" class="btn btn-sm btn-outline-secondary tools-action-btn">
-            <i class="bi bi-plus-circle me-1"></i> Cadastrar
-        </a>
-        <button type="button" class="btn btn-sm btn-outline-secondary tools-action-btn"
-                data-bs-toggle="modal" data-bs-target="#exportModal">
-            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Exportar
-        </button>
+<div class="page-subheader page-subheader--stacked">
+    <div class="ops-context-bar">
+        <div class="ops-context-copy">
+            <span class="ops-context-kicker">Operação</span>
+            <h1 class="ops-context-title">Gestão de ferramentas</h1>
+            <p class="ops-context-text">
+                Cadastre, pesquise e movimente o estoque em um browse operacional único.
+            </p>
+        </div>
+        <div class="ops-context-meta">
+            <span class="ops-meta-pill">
+                <i class="bi bi-layout-text-sidebar-reverse"></i>Browse full-width
+            </span>
+            <span class="ops-meta-pill">
+                <i class="bi bi-search"></i>Busca por coluna
+            </span>
+        </div>
     </div>
-    <div class="tools-toolbar-right">
-        {% set col_label_map = {'all': 'Todos', 'name': 'Nome', 'origin_id': 'ID TOTVS', 'tool_type': 'Tipo', 'location': 'Localização', 'status': 'Status'} %}
-        <form method="GET" action="/tools" class="tools-search-form" id="searchForm">
-            <div class="input-group input-group-sm">
-                <input type="text" name="search" class="form-control form-control-sm" id="searchInput"
-                       placeholder="Buscar por nome ou tipo..." value="{{ search }}">
-                <input type="hidden" name="search_col" id="searchColInput" value="{{ search_col or 'all' }}">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
-                        data-bs-toggle="dropdown" aria-expanded="false" id="searchColBtn">
-                    <span id="searchColLabel">{{ col_label_map.get(search_col, 'Todos') }}</span>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" id="searchColMenu">
-                    <li><a class="dropdown-item" href="#" data-col="all">Todos</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#" data-col="name">Nome</a></li>
-                    <li><a class="dropdown-item" href="#" data-col="origin_id">ID TOTVS</a></li>
-                    <li><a class="dropdown-item" href="#" data-col="tool_type">Tipo</a></li>
-                    <li><a class="dropdown-item" href="#" data-col="location">Localização</a></li>
-                    <li><a class="dropdown-item" href="#" data-col="status">Status</a></li>
-                </ul>
-                <button class="btn btn-sm btn-outline-secondary" type="submit">Buscar</button>
+    <div class="tools-toolbar tools-toolbar--wrap">
+        <div class="tools-toolbar-left">
+            <a href="/tools/create" class="btn btn-sm btn-outline-secondary tools-action-btn">
+                <i class="bi bi-plus-circle me-1"></i> Cadastrar
+            </a>
+            <button type="button" class="btn btn-sm btn-outline-secondary tools-action-btn"
+                    data-bs-toggle="modal" data-bs-target="#exportModal">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Exportar
+            </button>
+        </div>
+        <div class="tools-toolbar-right">
+            <form method="GET" action="/tools" class="tools-search-form" id="searchForm">
+                <div class="input-group input-group-sm">
+                    <input type="text" name="search" class="form-control form-control-sm" id="searchInput"
+                           placeholder="Buscar por nome ou tipo..." value="{{ search }}">
+                    <input type="hidden" name="search_col" id="searchColInput" value="{{ search_col or 'all' }}">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown" aria-expanded="false" id="searchColBtn">
+                        <span id="searchColLabel">{{ col_label_map.get(search_col, 'Todos') }}</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" id="searchColMenu">
+                        <li><a class="dropdown-item" href="#" data-col="all">Todos</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" data-col="name">Nome</a></li>
+                        <li><a class="dropdown-item" href="#" data-col="origin_id">ID TOTVS</a></li>
+                        <li><a class="dropdown-item" href="#" data-col="tool_type">Tipo</a></li>
+                        <li><a class="dropdown-item" href="#" data-col="location">Localização</a></li>
+                        <li><a class="dropdown-item" href="#" data-col="status">Status</a></li>
+                    </ul>
+                    <button class="btn btn-sm btn-outline-secondary" type="submit">Buscar</button>
+                    {% if search %}
+                    <a href="/tools" class="btn btn-sm btn-outline-danger">Limpar</a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="ops-feedback-bar">
+        <div class="ops-feedback-summary">
+            <span class="ops-feedback-count">{{ tools|length }} ferramenta{{ '' if tools|length == 1 else 's' }}</span>
+            <span class="ops-feedback-label">
                 {% if search %}
-                <a href="/tools" class="btn btn-sm btn-outline-danger">Limpar</a>
+                Busca aplicada em {{ col_label_map.get(search_col, 'Todos')|lower }}.
+                {% else %}
+                Visualização completa do estoque.
                 {% endif %}
-            </div>
-        </form>
+            </span>
+        </div>
+        <div class="ops-feedback-chips">
+            {% if search and search_col and search_col != 'all' %}
+            <span class="filter-chip filter-chip--static">
+                <i class="bi bi-funnel"></i>{{ col_label_map.get(search_col, 'Todos') }}
+            </span>
+            {% endif %}
+            {% if search %}
+            <span class="filter-chip">
+                <i class="bi bi-search"></i>{{ search }}
+                <a href="/tools" class="filter-chip-remove" title="Remover busca">&times;</a>
+            </span>
+            {% else %}
+            <span class="filter-chip filter-chip--muted">
+                <i class="bi bi-stars"></i>Sem filtros ativos
+            </span>
+            {% endif %}
+        </div>
     </div>
 </div>
 
 <!-- ====== Tools Table (full-width, dense, ERP-style) ====== -->
-<div class="tools-grid-wrapper">
-    <div class="table-responsive">
-        <table class="table table-hover table-striped mb-0 align-middle tools-grid">
-            <thead>
-                <tr>
-                    <th class="sortable" data-sort-type="number" data-col="0">ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                    <th class="sortable" data-sort-type="string" data-col="1">ID TOTVS <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                    <th class="sortable" data-sort-type="string" data-col="2">Nome da Ferramenta <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                    <th class="sortable" data-sort-type="string" data-col="3">Tipo <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                    <th class="sortable" data-sort-type="string" data-col="4">Localização <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                    <th class="sortable text-center" data-sort-type="number" data-col="5">Mín. <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                    <th class="sortable text-center" data-sort-type="number" data-col="6">Máx. <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                    <th class="sortable text-center" data-sort-type="number" data-col="7">Estoque <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                    <th class="sortable text-center" data-sort-type="string" data-col="8">Status <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                    <th class="text-center">Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for t in tools %}
-                <tr>
-                    <td>{{ t.id }}</td>
-                    <td>{{ t.origin_id or "—" }}</td>
-                    <td>
-                        <a href="/tools/{{ t.id }}{% if search %}?ref={{ search|urlencode }}{% if search_col and search_col != 'all' %}&ref_col={{ search_col|urlencode }}{% endif %}{% endif %}" class="text-decoration-none fw-semibold">
-                            {{ t.name }}
-                        </a>
-                    </td>
-                    <td>{{ t.tool_type.name }}</td>
-                    <td>{{ t.location or "—" }}</td>
-                    <td class="text-center">{{ t.min_stock }}</td>
-                    <td class="text-center">{{ t.max_stock }}</td>
-                    <td class="text-center fw-bold">{{ t.current_stock }}</td>
-                    <td class="text-center">
-                        {% if t.status == "CRITICAL" %}
-                            <span class="badge bg-danger">CRÍTICO</span>
-                        {% elif t.status == "LOW STOCK" %}
-                            <span class="badge bg-warning text-dark">ESTOQUE BAIXO</span>
-                        {% else %}
-                            <span class="badge bg-success">OK</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-center text-nowrap">
+<div class="page-grid-fullwidth">
+    <div class="tools-grid-wrapper">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle tools-grid tools-grid--inventory">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort-type="number" data-col="0">ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                        <th class="sortable" data-sort-type="string" data-col="1">ID TOTVS <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                        <th class="sortable" data-sort-type="string" data-col="2">Nome da Ferramenta <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                        <th class="sortable" data-sort-type="string" data-col="3">Tipo <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                        <th class="sortable" data-sort-type="string" data-col="4">Localização <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                        <th class="sortable text-center" data-sort-type="number" data-col="5">Mín. <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                        <th class="sortable text-center" data-sort-type="number" data-col="6">Máx. <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                        <th class="sortable text-center" data-sort-type="number" data-col="7">Estoque <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                        <th class="sortable text-center" data-sort-type="string" data-col="8">Status <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for t in tools %}
+                    <tr>
+                        <td>{{ t.id }}</td>
+                        <td>{{ t.origin_id or "—" }}</td>
+                        <td>
+                            <a href="/tools/{{ t.id }}{% if search %}?ref={{ search|urlencode }}{% if search_col and search_col != 'all' %}&ref_col={{ search_col|urlencode }}{% endif %}{% endif %}" class="text-decoration-none fw-semibold">
+                                {{ t.name }}
+                            </a>
+                        </td>
+                        <td>{{ t.tool_type.name }}</td>
+                        <td>{{ t.location or "—" }}</td>
+                        <td class="text-center">{{ t.min_stock }}</td>
+                        <td class="text-center">{{ t.max_stock }}</td>
+                        <td class="text-center fw-bold">{{ t.current_stock }}</td>
+                        <td class="text-center">
+                            {% if t.status == "CRITICAL" %}
+                                <span class="badge bg-danger">CRÍTICO</span>
+                            {% elif t.status == "LOW STOCK" %}
+                                <span class="badge bg-warning text-dark">ESTOQUE BAIXO</span>
+                            {% else %}
+                                <span class="badge bg-success">OK</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center text-nowrap">
                         <!-- Entrada -->
                         <button class="btn btn-sm btn-outline-success"
                                 data-bs-toggle="modal"
@@ -110,18 +159,19 @@
                             <i class="bi bi-person-badge"></i> Emprestar
                         </button>
                         
-                    </td>
-                </tr>
-            {% endfor %}
-            {% if not tools %}
-                <tr>
-                    <td colspan="10" class="text-center text-muted py-4">
-                        Nenhuma ferramenta encontrada. <a href="/tools/create">Cadastrar nova ferramenta</a>.
-                    </td>
-                </tr>
-            {% endif %}
-            </tbody>
-        </table>
+                        </td>
+                    </tr>
+                {% endfor %}
+                {% if not tools %}
+                    <tr>
+                        <td colspan="10" class="text-center text-muted py-4">
+                            Nenhuma ferramenta encontrada. <a href="/tools/create">Cadastrar nova ferramenta</a>.
+                        </td>
+                    </tr>
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

@@ -5,6 +5,43 @@
 document.addEventListener('DOMContentLoaded', function () {
 
     // ------------------------------------------------------------------
+    // Hamburger nav drawer
+    // ------------------------------------------------------------------
+    const navToggleBtn     = document.getElementById('navToggleBtn');
+    const navDrawer        = document.getElementById('navDrawer');
+    const navDrawerOverlay = document.getElementById('navDrawerOverlay');
+
+    function openDrawer() {
+        navDrawer.classList.add('open');
+        navDrawerOverlay.classList.add('open');
+        navToggleBtn.classList.add('open');
+        navToggleBtn.setAttribute('aria-expanded', 'true');
+        navDrawer.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeDrawer() {
+        navDrawer.classList.remove('open');
+        navDrawerOverlay.classList.remove('open');
+        navToggleBtn.classList.remove('open');
+        navToggleBtn.setAttribute('aria-expanded', 'false');
+        navDrawer.setAttribute('aria-hidden', 'true');
+    }
+
+    if (navToggleBtn && navDrawer) {
+        navToggleBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            navDrawer.classList.contains('open') ? closeDrawer() : openDrawer();
+        });
+        navDrawerOverlay.addEventListener('click', closeDrawer);
+        navDrawer.querySelectorAll('.nav-drawer-link').forEach(function (link) {
+            link.addEventListener('click', closeDrawer);
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeDrawer();
+        });
+    }
+
+    // ------------------------------------------------------------------
     // Auto-dismiss Bootstrap alerts after 8 seconds
     // ------------------------------------------------------------------
     const alerts = document.querySelectorAll('.alert-dismissible');
@@ -14,28 +51,6 @@ document.addEventListener('DOMContentLoaded', function () {
             bsAlert.close();
         }, 8000);
     });
-
-    // ------------------------------------------------------------------
-    // Sidebar – mobile toggle (< lg)
-    // ------------------------------------------------------------------
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    const toggleBtn = document.getElementById('sidebarToggleMobile');
-
-    function closeSidebar() {
-        if (sidebar) sidebar.classList.remove('expanded');
-        if (overlay) overlay.classList.remove('show');
-    }
-
-    if (toggleBtn) {
-        toggleBtn.addEventListener('click', function () {
-            sidebar.classList.toggle('expanded');
-            overlay.classList.toggle('show');
-        });
-    }
-    if (overlay) {
-        overlay.addEventListener('click', closeSidebar);
-    }
 
     // ------------------------------------------------------------------
     // Notifications – badge count + modal content

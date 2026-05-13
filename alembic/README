@@ -1,0 +1,9 @@
+# Alembic migration directory.
+#
+# - env.py reads DATABASE_URL from the environment and uses app.database.Base
+#   as the autogenerate target.
+# - For an existing SQLite DB already at the current schema, run:
+#       alembic stamp 0001_baseline
+#   so Alembic considers it up-to-date without trying to recreate the tables.
+# - For a fresh PostgreSQL DB, run:
+#       alembic upgrade head

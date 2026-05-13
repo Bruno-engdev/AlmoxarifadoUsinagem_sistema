@@ -1,27 +1,69 @@
 {% extends "base.html" %}
 {% set active_page = "movements" %}
+{% set is_admin = request.state.current_user and request.state.current_user.role == 'ADMIN' %}
+{% set current_url = '/movements?' ~ ('category=' ~ category) ~ '&tool_id=' ~ selected_tool_id ~ '&sort=' ~ sort ~ '&search=' ~ (search or '') ~ '&search_col=' ~ (search_col or 'all') ~ '&date_from=' ~ (date_from or '') ~ '&date_to=' ~ (date_to or '') %}
+{% set selected_tool = namespace(name='Todas as Ferramentas') %}
+{% if selected_tool_id and selected_tool_id != 0 %}
+  {% for t in tools %}
+    {% if selected_tool_id == t.id %}
+      {% set selected_tool.name = t.name %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
 
 {% block title %}Movimentações – Almoxarifado{% endblock %}
-{% block topbar_title %}<i class="bi bi-arrow-left-right me-2"></i>Movimentações{% endblock %}
+{% block topbar_title %}Movimentações{% endblock %}
 
 {% block content %}
-<!-- Category tabs — primary context selector -->
-<div class="category-tabs mb-0">
+{% if flash_message %}
+<div class="alert alert-success alert-dismissible fade show mb-2 py-2" role="alert">
+    <i class="bi bi-check-circle me-2"></i>{{ flash_message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+</div>
+{% endif %}
+{% if error_message %}
+<div class="alert alert-danger alert-dismissible fade show mb-2 py-2" role="alert">
+    <i class="bi bi-exclamation-triangle me-2"></i>{{ error_message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+</div>
+{% endif %}
+{% set mv_col_labels = {'all': 'Todos', 'tool': 'Ferramenta', 'employee': 'Funcionário', 'machine': 'Máquina', 'type': 'Tipo', 'notes': 'Observações', 'status': 'Status'} %}
+<div class="page-subheader page-subheader--stacked">
+  <div class="ops-context-bar">
+    <div class="ops-context-copy">
+      <span class="ops-context-kicker">Operação</span>
+      <h1 class="ops-context-title">Log de movimentações</h1>
+      <p class="ops-context-text">
+        Consulte empréstimos, reposições e registros administrativos com o mesmo browse operacional.
+      </p>
+    </div>
+    <div class="ops-context-meta">
+      <span class="ops-meta-pill">
+        <i class="bi bi-arrow-left-right"></i>
+        {{ 'Empréstimos' if category == 'EMPRESTIMO' else 'Reposições' }}
+      </span>
+      <span class="ops-meta-pill">
+        <i class="bi bi-clock-history"></i>Consulta do histórico
+      </span>
+    </div>
+  </div>
+
+  <!-- Category tabs — primary context selector -->
+  <div class="category-tabs mb-0">
     <a href="/movements?category=EMPRESTIMO&tool_id={{ selected_tool_id }}&sort={{ sort }}&search={{ search }}&search_col={{ search_col }}&date_from={{ date_from }}&date_to={{ date_to }}"
        class="category-tab {% if category == 'EMPRESTIMO' %}active{% endif %}">
-        <i class="bi bi-person-badge me-1"></i>Empréstimos
+      <i class="bi bi-person-badge me-1"></i>Empréstimos
     </a>
     <a href="/movements?category=REPOSICAO&tool_id={{ selected_tool_id }}&sort={{ sort }}&search={{ search }}&search_col={{ search_col }}&date_from={{ date_from }}&date_to={{ date_to }}"
        class="category-tab {% if category == 'REPOSICAO' %}active{% endif %}">
-        <i class="bi bi-gear me-1"></i>Reposições
+      <i class="bi bi-gear me-1"></i>Reposições
     </a>
-</div>
+  </div>
 
-<!-- ====== Toolbar: filters left, search right ====== -->
-{% set mv_col_labels = {'all': 'Todos', 'tool': 'Ferramenta', 'employee': 'Funcionário', 'machine': 'Máquina', 'type': 'Tipo', 'notes': 'Observações', 'status': 'Status'} %}
-<div class="tools-toolbar">
-    <div class="tools-toolbar-left d-flex align-items-center gap-2">
-        <form method="GET" action="/movements" class="d-flex align-items-center gap-2" id="toolFilterForm">
+  <!-- ====== Toolbar: filters left, search right ====== -->
+  <div class="tools-toolbar tools-toolbar--wrap">
+    <div class="tools-toolbar-left tools-toolbar-left--wrap">
+      <form method="GET" action="/movements" class="toolbar-inline-form" id="toolFilterForm">
             <input type="hidden" name="category" value="{{ category }}">
             <input type="hidden" name="sort" value="{{ sort }}">
             <input type="hidden" name="search" value="{{ search }}">
@@ -37,7 +79,7 @@
                 {% endfor %}
             </select>
         </form>
-        <form method="GET" action="/movements" class="d-flex align-items-center gap-1" id="dateFilterForm">
+            <form method="GET" action="/movements" class="toolbar-inline-form" id="dateFilterForm">
             <input type="hidden" name="category" value="{{ category }}">
             <input type="hidden" name="sort" value="{{ sort }}">
             <input type="hidden" name="search" value="{{ search }}">
@@ -45,7 +87,7 @@
             <input type="hidden" name="tool_id" value="{{ selected_tool_id }}">
             <input type="date" name="date_from" class="form-control form-control-sm" style="max-width:140px;"
                    value="{{ date_from }}" title="Data inicial">
-            <span class="text-muted small">até</span>
+              <span class="toolbar-separator">até</span>
             <input type="date" name="date_to" class="form-control form-control-sm" style="max-width:140px;"
                    value="{{ date_to }}" title="Data final">
             <button type="submit" class="btn btn-sm btn-outline-secondary tools-action-btn" title="Filtrar por data">
@@ -57,7 +99,13 @@
             <i class="bi bi-x-lg me-1"></i>Limpar
         </a>
         {% endif %}
-    </div>
+        {% if is_admin %}
+        <button type="button" class="btn btn-sm btn-primary tools-action-btn ms-1"
+                data-bs-toggle="modal" data-bs-target="#manualMovementModal">
+            <i class="bi bi-plus-lg me-1"></i>Adicionar manualmente
+        </button>
+        {% endif %}
+      </div>
     <div class="tools-toolbar-right">
         <form method="GET" action="/movements" class="tools-search-form" id="mvSearchForm">
             <input type="hidden" name="category" value="{{ category }}">
@@ -93,111 +141,423 @@
             </div>
         </form>
     </div>
+  </div>
+
+  <div class="ops-feedback-bar">
+    <div class="ops-feedback-summary">
+      <span class="ops-feedback-count">{{ movements|length }} movimenta{{ 'ção' if movements|length == 1 else 'ções' }}</span>
+      <span class="ops-feedback-label">
+        {{ 'Empréstimos' if category == 'EMPRESTIMO' else 'Reposições' }}
+        {% if (selected_tool_id and selected_tool_id != 0) or search or date_from or date_to %}
+        com filtros aplicados.
+        {% else %}
+        sem filtros adicionais.
+        {% endif %}
+      </span>
+    </div>
+    <div class="ops-feedback-chips">
+      <span class="filter-chip filter-chip--static">
+        <i class="bi bi-arrow-left-right"></i>{{ 'Empréstimos' if category == 'EMPRESTIMO' else 'Reposições' }}
+      </span>
+      {% if selected_tool_id and selected_tool_id != 0 %}
+      <span class="filter-chip">
+        <i class="bi bi-wrench"></i>{{ selected_tool.name }}
+        <a href="/movements?category={{ category }}&tool_id=0&sort={{ sort }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}" class="filter-chip-remove" title="Remover filtro da ferramenta">&times;</a>
+      </span>
+      {% endif %}
+      {% if date_from or date_to %}
+      <span class="filter-chip">
+        <i class="bi bi-calendar3"></i>{{ date_from or 'Início aberto' }} até {{ date_to or 'Hoje' }}
+        <a href="/movements?category={{ category }}&tool_id={{ selected_tool_id }}&sort={{ sort }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}" class="filter-chip-remove" title="Remover filtro de data">&times;</a>
+      </span>
+      {% endif %}
+      {% if search %}
+      <span class="filter-chip">
+        <i class="bi bi-search"></i>{{ search }}{% if search_col and search_col != 'all' %} · {{ mv_col_labels.get(search_col, 'Todos') }}{% endif %}
+        <a href="/movements?category={{ category }}&tool_id={{ selected_tool_id }}&sort={{ sort }}&search=&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}" class="filter-chip-remove" title="Remover busca">&times;</a>
+      </span>
+      {% endif %}
+      {% if not ((selected_tool_id and selected_tool_id != 0) or search or date_from or date_to) %}
+      <span class="filter-chip filter-chip--muted">
+        <i class="bi bi-stars"></i>Sem filtros adicionais
+      </span>
+      {% endif %}
+    </div>
+  </div>
 </div>
 
 <!-- Movements Table -->
-<div class="tools-grid-wrapper">
-    <div class="table-responsive">
-        <table class="table table-hover mb-0 align-middle movements-table tools-grid">
-            <thead>
-                    <tr>
-                        <th class="sortable" data-sort-type="string" data-col="0">Data <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        <th class="sortable" data-sort-type="string" data-col="1">Ferramenta <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        {% if category == 'EMPRESTIMO' %}
-                            <th class="sortable" data-sort-type="string" data-col="2">Funcionário <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        {% else %}
-                            <th class="sortable" data-sort-type="string" data-col="2">Máquina <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        {% endif %}
-                        <th class="sortable text-center" data-sort-type="string" data-col="3">Tipo <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        <th class="sortable text-center" data-sort-type="number" data-col="4">Qtd. <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        <th class="sortable text-end col-cost" data-sort-type="number" data-col="5">Custo Unit. <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        <th class="sortable text-end col-cost" data-sort-type="number" data-col="6">Custo Total <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        {% if category == 'EMPRESTIMO' %}
-                            <th class="sortable text-center" data-sort-type="string" data-col="7">Status <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable" data-sort-type="string" data-col="8">Devolução <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="text-center">Ação</th>
-                        {% endif %}
-                        <th>Obs.</th>
-                    </tr>
-                </thead>
-                <tbody>
-                {% for m in movements %}
-                    <tr class="{% if category == 'EMPRESTIMO' and m.loan_status == 'PENDENTE' %}row-pending{% endif %}">
-                        <td class="text-nowrap small">{{ m.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
-                        <td>
-                            <a href="/tools/{{ m.tool.id }}" class="text-decoration-none fw-semibold">
-                                {{ m.tool.name }}
-                            </a>
-                        </td>
-                        {% if category == 'EMPRESTIMO' %}
-                            <td>{{ m.employee.name if m.employee else "—" }}</td>
-                        {% else %}
-                            <td>{{ m.machine.name if m.machine else "—" }}</td>
-                        {% endif %}
-                        <td class="text-center">
-                            {% if m.movement_type == "IN" %}
-                                <span class="badge bg-success badge-sm">ENTRADA</span>
+<div class="page-grid-fullwidth">
+    <div class="tools-grid-wrapper">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle movements-table tools-grid">
+                <thead>
+                        <tr>
+                            <th class="sortable" data-sort-type="string" data-col="0">Data <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-sort-type="string" data-col="1">Ferramenta <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            {% if category == 'EMPRESTIMO' %}
+                                <th class="sortable" data-sort-type="string" data-col="2">Funcionário <i class="bi bi-arrow-down-up sort-icon"></i></th>
                             {% else %}
-                                <span class="badge bg-danger badge-sm">SAÍDA</span>
+                                <th class="sortable" data-sort-type="string" data-col="2">Máquina <i class="bi bi-arrow-down-up sort-icon"></i></th>
                             {% endif %}
-                        </td>
-                        <td class="text-center fw-bold">{{ m.quantity }}</td>
-                        <td class="text-end col-cost text-muted small">{{ "R$ %.2f"|format(m.unit_cost or 0) }}</td>
-                        <td class="text-end col-cost small">{{ "R$ %.2f"|format((m.unit_cost or 0) * m.quantity) }}</td>
-                        {% if category == 'EMPRESTIMO' %}
+                            <th class="sortable text-center" data-sort-type="string" data-col="3">Tipo <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable text-center" data-sort-type="number" data-col="4">Qtd. <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable text-end col-cost" data-sort-type="number" data-col="5">Custo Unit. <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable text-end col-cost" data-sort-type="number" data-col="6">Custo Total <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            {% if category == 'EMPRESTIMO' %}
+                                <th class="sortable text-center" data-sort-type="string" data-col="7">Status <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                <th class="sortable" data-sort-type="string" data-col="8">Devolução <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                <th class="text-center">Ação</th>
+                            {% elif is_admin %}
+                                <th class="text-center">Ação</th>
+                            {% endif %}
+                            <th>Obs.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for m in movements %}
+                        <tr class="{% if category == 'EMPRESTIMO' and m.loan_status == 'PENDENTE' %}row-pending{% endif %}">
+                            <td class="text-nowrap small">{{ m.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>
+                                <a href="/tools/{{ m.tool.id }}" class="text-decoration-none fw-semibold">
+                                    {{ m.tool.name }}
+                                </a>
+                            </td>
+                            {% if category == 'EMPRESTIMO' %}
+                                <td>{{ m.employee.name if m.employee else "—" }}</td>
+                            {% else %}
+                                <td>{{ m.machine.name if m.machine else "—" }}</td>
+                            {% endif %}
                             <td class="text-center">
-                                {% if m.loan_status == "PENDENTE" %}
-                                    <span class="badge bg-warning text-dark badge-pulse">PENDENTE</span>
-                                {% elif m.loan_status == "ENTREGUE" %}
-                                    <span class="badge bg-success badge-sm">ENTREGUE</span>
+                                {% if m.movement_type == "IN" %}
+                                    <span class="badge bg-success badge-sm">ENTRADA</span>
                                 {% else %}
-                                    <span class="text-muted">—</span>
+                                    <span class="badge bg-danger badge-sm">SAÍDA</span>
                                 {% endif %}
                             </td>
-                            <td class="text-nowrap small">
-                                {% if m.return_timestamp %}
-                                    {{ m.return_timestamp.strftime('%d/%m/%Y %H:%M') }}
-                                {% else %}
-                                    <span class="text-muted">—</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-center">
-                                {% if m.loan_status == "PENDENTE" %}
-                                    <form method="POST" action="/movements/{{ m.id }}/return" class="d-inline"
-                                          onsubmit="return confirm('Confirmar devolução de {{ m.tool.name }}?')">
-                                        <button class="btn btn-sm btn-success">
-                                            <i class="bi bi-box-arrow-in-left me-1"></i>Devolver
+                            <td class="text-center fw-bold">{{ m.quantity }}</td>
+                            <td class="text-end col-cost text-muted small">{{ "R$ %.2f"|format(m.unit_cost or 0) }}</td>
+                            <td class="text-end col-cost small">{{ "R$ %.2f"|format((m.unit_cost or 0) * m.quantity) }}</td>
+                            {% if category == 'EMPRESTIMO' %}
+                                <td class="text-center">
+                                    {% if m.loan_status == "PENDENTE" %}
+                                        <span class="badge bg-warning text-dark badge-pulse">PENDENTE</span>
+                                    {% elif m.loan_status == "ENTREGUE" %}
+                                        <span class="badge bg-success badge-sm">ENTREGUE</span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-nowrap small">
+                                    {% if m.return_timestamp %}
+                                        {{ m.return_timestamp.strftime('%d/%m/%Y %H:%M') }}
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if m.loan_status == "PENDENTE" %}
+                                        <form method="POST" action="/movements/{{ m.id }}/return" class="d-inline"
+                                              onsubmit="return confirm('Confirmar devolução de {{ m.tool.name }}?')">
+                                            <button class="btn btn-sm btn-success">
+                                                <i class="bi bi-box-arrow-in-left me-1"></i>Devolver
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span class="text-muted small">—</span>
+                                    {% endif %}
+                                    {% if is_admin %}
+                                        <div class="d-flex gap-1 justify-content-center mt-1">
+                                            <button type="button" class="btn btn-sm btn-outline-primary mv-edit-btn"
+                                                    title="Editar movimentação"
+                                                    data-mv-id="{{ m.id }}"
+                                                    data-mv-tool-id="{{ m.tool_id }}"
+                                                    data-mv-tool-name="{{ m.tool.name }}"
+                                                    data-mv-type="{{ m.movement_type }}"
+                                                    data-mv-category="{{ m.category }}"
+                                                    data-mv-quantity="{{ m.quantity }}"
+                                                    data-mv-timestamp="{{ m.timestamp.strftime('%Y-%m-%dT%H:%M') }}"
+                                                    data-mv-employee-id="{{ m.employee_id or '' }}"
+                                                    data-mv-machine-id="{{ m.machine_id or '' }}"
+                                                    data-mv-unit-cost="{{ '%.2f' % (m.unit_cost or 0) }}"
+                                                    data-mv-loan-status="{{ m.loan_status or '' }}"
+                                                    data-mv-return-ts="{{ m.return_timestamp.strftime('%Y-%m-%dT%H:%M') if m.return_timestamp else '' }}"
+                                                    data-mv-notes="{{ m.notes or '' }}">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger mv-delete-btn"
+                                                    title="Excluir movimentação"
+                                                    data-mv-id="{{ m.id }}"
+                                                    data-mv-label="{{ m.tool.name }} ({{ m.timestamp.strftime('%d/%m/%Y %H:%M') }})">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                            {% elif is_admin %}
+                                <td class="text-center">
+                                    <div class="d-flex gap-1 justify-content-center">
+                                        <button type="button" class="btn btn-sm btn-outline-primary mv-edit-btn"
+                                                title="Editar movimentação"
+                                                data-mv-id="{{ m.id }}"
+                                                data-mv-tool-id="{{ m.tool_id }}"
+                                                data-mv-tool-name="{{ m.tool.name }}"
+                                                data-mv-type="{{ m.movement_type }}"
+                                                data-mv-category="{{ m.category }}"
+                                                data-mv-quantity="{{ m.quantity }}"
+                                                data-mv-timestamp="{{ m.timestamp.strftime('%Y-%m-%dT%H:%M') }}"
+                                                data-mv-employee-id="{{ m.employee_id or '' }}"
+                                                data-mv-machine-id="{{ m.machine_id or '' }}"
+                                                data-mv-unit-cost="{{ '%.2f' % (m.unit_cost or 0) }}"
+                                                data-mv-loan-status="{{ m.loan_status or '' }}"
+                                                data-mv-return-ts="{{ m.return_timestamp.strftime('%Y-%m-%dT%H:%M') if m.return_timestamp else '' }}"
+                                                data-mv-notes="{{ m.notes or '' }}">
+                                            <i class="bi bi-pencil"></i>
                                         </button>
-                                    </form>
-                                {% else %}
-                                    <span class="text-muted small">—</span>
-                                {% endif %}
-                            </td>
-                        {% endif %}
-                        <td class="small text-muted">{{ m.notes or "—" }}</td>
-                    </tr>
-                {% endfor %}
-                {% if not movements %}
-                    <tr>
-                        <td colspan="{% if category == 'EMPRESTIMO' %}10{% else %}7{% endif %}" class="text-center py-5">
-                            <div class="empty-state">
-                                <i class="bi bi-inbox display-4 d-block mb-2 opacity-50"></i>
-                                <span class="text-muted">Nenhuma movimentação encontrada{% if selected_tool_id and selected_tool_id != 0 %} com os filtros atuais{% endif %}.</span>
-                                {% if selected_tool_id and selected_tool_id != 0 %}
-                                <div class="mt-2">
-                                    <a href="/movements?category={{ category }}" class="btn btn-sm btn-outline-secondary">
-                                        <i class="bi bi-x-lg me-1"></i>Limpar filtros
-                                    </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger mv-delete-btn"
+                                                title="Excluir movimentação"
+                                                data-mv-id="{{ m.id }}"
+                                                data-mv-label="{{ m.tool.name }} ({{ m.timestamp.strftime('%d/%m/%Y %H:%M') }})">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            {% endif %}
+                            <td class="small text-muted">{{ m.notes or "—" }}</td>
+                        </tr>
+                    {% endfor %}
+                    {% if not movements %}
+                        <tr>
+                            <td colspan="{% if category == 'EMPRESTIMO' %}10{% elif is_admin %}8{% else %}7{% endif %}" class="text-center py-5">
+                                <div class="empty-state">
+                                    <i class="bi bi-inbox display-4 d-block mb-2 opacity-50"></i>
+                                    <span class="text-muted">Nenhuma movimentação encontrada{% if selected_tool_id and selected_tool_id != 0 %} com os filtros atuais{% endif %}.</span>
+                                    {% if selected_tool_id and selected_tool_id != 0 %}
+                                    <div class="mt-2">
+                                        <a href="/movements?category={{ category }}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-x-lg me-1"></i>Limpar filtros
+                                        </a>
+                                    </div>
+                                    {% endif %}
                                 </div>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                {% endif %}
-            </tbody>
-        </table>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+
+{% if is_admin %}
+<!-- ===== Modal: Adicionar manualmente ===== -->
+<div class="modal fade" id="manualMovementModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <form method="POST" action="/movements/manual">
+        <input type="hidden" name="redirect_to" value="{{ current_url }}">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Adicionar movimentação manual</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Ferramenta *</label>
+              <select name="tool_id" class="form-select" required>
+                <option value="">Selecione...</option>
+                {% for t in tools %}
+                <option value="{{ t.id }}">{{ t.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Categoria *</label>
+              <select name="category" id="manualCategory" class="form-select" required>
+                <option value="EMPRESTIMO" {% if category == 'EMPRESTIMO' %}selected{% endif %}>Empréstimo</option>
+                <option value="REPOSICAO" {% if category == 'REPOSICAO' %}selected{% endif %}>Reposição</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Tipo *</label>
+              <select name="movement_type" id="manualType" class="form-select" required>
+                <option value="OUT">Saída</option>
+                <option value="IN">Entrada</option>
+              </select>
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label">Quantidade *</label>
+              <input type="number" name="quantity" min="1" value="1" class="form-control" required>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label">Data / Hora *</label>
+              <input type="datetime-local" name="timestamp" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Custo unitário (R$)</label>
+              <input type="number" name="unit_cost" step="0.01" min="0" class="form-control"
+                     placeholder="Obrigatório para entrada">
+            </div>
+
+            <div class="col-md-6 manual-employee-field">
+              <label class="form-label">Funcionário</label>
+              <select name="employee_id" class="form-select">
+                <option value="">—</option>
+                {% for e in employees %}
+                <option value="{{ e.id }}">{{ e.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 manual-machine-field" style="display:none;">
+              <label class="form-label">Máquina</label>
+              <select name="machine_id" class="form-select">
+                <option value="">—</option>
+                {% for mc in machines %}
+                <option value="{{ mc.id }}">{{ mc.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 manual-loan-status-field">
+              <label class="form-label">Status do empréstimo</label>
+              <select name="loan_status" class="form-select">
+                <option value="PENDENTE">Pendente</option>
+                <option value="ENTREGUE">Já entregue (devolvido)</option>
+              </select>
+              <small class="text-muted">Aplicável só a SAÍDA de empréstimo.</small>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Observações</label>
+              <textarea name="notes" class="form-control" rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Voltar</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Adicionar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal: Editar ===== -->
+<div class="modal fade" id="editMovementModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <form method="POST" id="editMovementForm">
+        <input type="hidden" name="redirect_to" value="{{ current_url }}">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar movimentação <span id="editMvId" class="opacity-75 ms-2"></span></h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-info py-2 small mb-3">
+            <i class="bi bi-info-circle me-1"></i>
+            Ferramenta, tipo e categoria não podem ser alterados aqui.
+            Para mudar isso, exclua e crie um novo registro.
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Ferramenta</label>
+              <input type="text" id="editToolName" class="form-control" disabled>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Categoria</label>
+              <input type="text" id="editCategory" class="form-control" disabled>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Tipo</label>
+              <input type="text" id="editType" class="form-control" disabled>
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label">Quantidade *</label>
+              <input type="number" name="quantity" id="editQuantity" min="1" class="form-control" required>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label">Data / Hora *</label>
+              <input type="datetime-local" name="timestamp" id="editTimestamp" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Custo unitário (R$)</label>
+              <input type="number" name="unit_cost" id="editUnitCost" step="0.01" min="0" class="form-control">
+            </div>
+
+            <div class="col-md-6 edit-employee-field">
+              <label class="form-label">Funcionário</label>
+              <select name="employee_id" id="editEmployee" class="form-select">
+                <option value="">—</option>
+                {% for e in employees %}
+                <option value="{{ e.id }}">{{ e.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 edit-machine-field">
+              <label class="form-label">Máquina</label>
+              <select name="machine_id" id="editMachine" class="form-select">
+                <option value="">—</option>
+                {% for mc in machines %}
+                <option value="{{ mc.id }}">{{ mc.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 edit-loan-status-field">
+              <label class="form-label">Status do empréstimo</label>
+              <select name="loan_status" id="editLoanStatus" class="form-select">
+                <option value="PENDENTE">Pendente</option>
+                <option value="ENTREGUE">Entregue (devolvido)</option>
+              </select>
+            </div>
+            <div class="col-md-6 edit-return-ts-field">
+              <label class="form-label">Data de devolução</label>
+              <input type="datetime-local" name="return_timestamp" id="editReturnTs" class="form-control">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Observações</label>
+              <textarea name="notes" id="editNotes" class="form-control" rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Voltar</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Alterar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal: Confirmar exclusão ===== -->
+<div class="modal fade" id="deleteMovementModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="POST" id="deleteMovementForm">
+        <input type="hidden" name="redirect_to" value="{{ current_url }}">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i>Excluir movimentação</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">Tem certeza que deseja excluir a movimentação:</p>
+          <p class="fw-bold mb-3" id="deleteMvLabel">—</p>
+          <div class="alert alert-warning py-2 small mb-0">
+            <i class="bi bi-info-circle me-1"></i>
+            Esta ação reverte o efeito sobre o estoque da ferramenta e remove o registro do log permanentemente.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger"><i class="bi bi-x-lg me-1"></i>Excluir</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block scripts %}
@@ -270,5 +630,95 @@
         });
     });
 })();
+
+{% if is_admin %}
+// ====== Admin: Manual entry modal — toggle employee/machine fields ======
+(function() {
+    const modal = document.getElementById('manualMovementModal');
+    if (!modal) return;
+    const cat = modal.querySelector('#manualCategory');
+    const typ = modal.querySelector('#manualType');
+    const empField = modal.querySelector('.manual-employee-field');
+    const machField = modal.querySelector('.manual-machine-field');
+    const loanField = modal.querySelector('.manual-loan-status-field');
+
+    function refresh() {
+        const isEmprestimo = cat.value === 'EMPRESTIMO';
+        const isOut = typ.value === 'OUT';
+        empField.style.display = isEmprestimo ? '' : 'none';
+        machField.style.display = isEmprestimo ? 'none' : '';
+        loanField.style.display = (isEmprestimo && isOut) ? '' : 'none';
+    }
+    cat.addEventListener('change', refresh);
+    typ.addEventListener('change', refresh);
+    modal.addEventListener('show.bs.modal', function() {
+        // default to "now" for the manual timestamp
+        const ts = modal.querySelector('input[name="timestamp"]');
+        if (ts && !ts.value) {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            ts.value = now.toISOString().slice(0, 16);
+        }
+        refresh();
+    });
+})();
+
+// ====== Admin: Edit modal ======
+(function() {
+    const modalEl = document.getElementById('editMovementModal');
+    if (!modalEl) return;
+    const form = document.getElementById('editMovementForm');
+    const empField = modalEl.querySelector('.edit-employee-field');
+    const machField = modalEl.querySelector('.edit-machine-field');
+    const loanField = modalEl.querySelector('.edit-loan-status-field');
+    const returnField = modalEl.querySelector('.edit-return-ts-field');
+
+    document.querySelectorAll('.mv-edit-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const d = btn.dataset;
+            form.action = '/movements/' + d.mvId + '/update';
+            modalEl.querySelector('#editMvId').textContent = '#' + d.mvId;
+            modalEl.querySelector('#editToolName').value = d.mvToolName || '';
+            modalEl.querySelector('#editCategory').value = d.mvCategory === 'EMPRESTIMO' ? 'Empréstimo' : 'Reposição';
+            modalEl.querySelector('#editType').value = d.mvType === 'IN' ? 'Entrada' : 'Saída';
+            modalEl.querySelector('#editQuantity').value = d.mvQuantity || '';
+            modalEl.querySelector('#editTimestamp').value = d.mvTimestamp || '';
+            modalEl.querySelector('#editUnitCost').value = d.mvUnitCost || '';
+            modalEl.querySelector('#editEmployee').value = d.mvEmployeeId || '';
+            modalEl.querySelector('#editMachine').value = d.mvMachineId || '';
+            modalEl.querySelector('#editLoanStatus').value = d.mvLoanStatus || 'PENDENTE';
+            modalEl.querySelector('#editReturnTs').value = d.mvReturnTs || '';
+            modalEl.querySelector('#editNotes').value = d.mvNotes || '';
+
+            const isEmp = d.mvCategory === 'EMPRESTIMO';
+            const isOut = d.mvType === 'OUT';
+            empField.style.display = isEmp ? '' : 'none';
+            machField.style.display = isEmp ? 'none' : '';
+            loanField.style.display = (isEmp && isOut) ? '' : 'none';
+            returnField.style.display = (isEmp && isOut) ? '' : 'none';
+
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        });
+    });
+})();
+
+// ====== Admin: Delete modal ======
+(function() {
+    const modalEl = document.getElementById('deleteMovementModal');
+    if (!modalEl) return;
+    const form = document.getElementById('deleteMovementForm');
+    const label = document.getElementById('deleteMvLabel');
+
+    document.querySelectorAll('.mv-delete-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            form.action = '/movements/' + btn.dataset.mvId + '/delete';
+            label.textContent = btn.dataset.mvLabel || '';
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        });
+    });
+})();
+{% endif %}
 </script>
 {% endblock %}

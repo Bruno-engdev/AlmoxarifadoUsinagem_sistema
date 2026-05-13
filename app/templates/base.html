@@ -14,43 +14,24 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <!-- Custom CSS -->
-    <link href="/static/css/style.css?v=7" rel="stylesheet">
+    <link href="/static/css/style.css?v=10" rel="stylesheet">
 </head>
 <body>
-
-<!-- ====== Sidebar ====== -->
-<aside id="sidebar" class="sidebar">
-    <nav class="sidebar-nav">
-        <a href="/" class="sidebar-link {% if active_page == 'dashboard' %}active{% endif %}"
-           title="Painel">
-            <i class="bi bi-speedometer2"></i>
-            <span class="sidebar-label">Painel</span>
-        </a>
-        <a href="/tools" class="sidebar-link {% if active_page == 'tools' %}active{% endif %}"
-           title="Ferramentas">
-            <i class="bi bi-wrench"></i>
-            <span class="sidebar-label">Ferramentas</span>
-        </a>
-        <a href="/movements" class="sidebar-link {% if active_page == 'movements' %}active{% endif %}"
-           title="Movimentações">
-            <i class="bi bi-arrow-left-right"></i>
-            <span class="sidebar-label">Movimentações</span>
-        </a>
-    </nav>
-    <div class="sidebar-footer">
-        <small class="sidebar-label text-muted">&copy; 2026</small>
-    </div>
-</aside>
-
 <!-- ====== Topbar ====== -->
 <header id="topbar" class="topbar">
     <div class="topbar-left">
-        <button id="sidebarToggleMobile" class="btn btn-sm btn-outline-secondary d-lg-none me-2"
-                type="button" aria-label="Menu">
-            <i class="bi bi-list"></i>
+        {% if request.state.current_user %}
+        <button id="navToggleBtn" class="topbar-hamburger" aria-label="Menu" aria-expanded="false">
+            <span></span>
+            <span></span>
+            <span></span>
         </button>
+        {% endif %}
         <img src="/static/images/DHALMARLOGO.png" alt="Dhalmar" class="topbar-logo">
-        <div class="topbar-title">{% block topbar_title %}{% endblock %}</div>
+    </div>
+
+    <div class="topbar-center">
+        <span class="topbar-page-title">{% block topbar_title %}{% endblock %}</span>
     </div>
 
     <div class="topbar-right">
@@ -113,6 +94,24 @@
     </div>
 </header>
 
+<!-- ====== Nav Drawer ====== -->
+{% if request.state.current_user %}
+<div id="navDrawer" class="nav-drawer" aria-hidden="true">
+    <nav class="nav-drawer-content">
+        <a href="/" class="nav-drawer-link {% if active_page == 'dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i> Painel
+        </a>
+        <a href="/tools" class="nav-drawer-link {% if active_page == 'tools' %}active{% endif %}">
+            <i class="bi bi-wrench"></i> Ferramentas
+        </a>
+        <a href="/movements" class="nav-drawer-link {% if active_page == 'movements' %}active{% endif %}">
+            <i class="bi bi-arrow-left-right"></i> Movimentações
+        </a>
+    </nav>
+</div>
+<div id="navDrawerOverlay" class="nav-drawer-overlay"></div>
+{% endif %}
+
 <!-- ====== Notification Modal ====== -->
 <div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notifModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable modal-lg">
@@ -142,9 +141,6 @@
     </div>
 </div>
 
-<!-- ====== Sidebar overlay (mobile) ====== -->
-<div id="sidebarOverlay" class="sidebar-overlay"></div>
-
 <!-- ====== Content ====== -->
 <main id="mainContent" class="main-content">
     {% block content %}{% endblock %}
@@ -153,7 +149,7 @@
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Custom JS -->
-<script src="/static/js/app.js?v=9"></script>
+<script src="/static/js/app.js?v=10"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

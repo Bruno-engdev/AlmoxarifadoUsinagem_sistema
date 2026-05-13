@@ -1,7 +1,14 @@
+"""
+Development-only fixture seeder.
+
+Schema must already exist (run `alembic upgrade head` for PostgreSQL or
+`python -m app.cli init-sqlite` for SQLite) before invoking this script.
+"""
+
 import random
 from datetime import datetime, timedelta
 
-from app.database import SessionLocal, init_db
+from app.database import SessionLocal
 from app.models import ToolType, Machine, Employee, Tool, Movement
 
 
@@ -137,7 +144,6 @@ def seed_movements(db, tools, employees, machines):
 
 
 def main():
-    init_db()
     db = SessionLocal()
     try:
         tool_types = seed_tool_types(db)
