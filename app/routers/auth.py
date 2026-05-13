@@ -17,8 +17,9 @@ router = APIRouter()
 def login_page(request: Request):
     """Render the login page."""
     return request.app.state.templates.TemplateResponse(
-        "auth/login.html",
-        {"request": request, "error": None},
+        request=request,
+        name="auth/login.html",
+        context={"error": None},
     )
 
 
@@ -34,8 +35,9 @@ def login_submit(
 
     if user is None or not verify_password(password, user.password_hash):
         return request.app.state.templates.TemplateResponse(
-            "auth/login.html",
-            {"request": request, "error": "Usuário ou senha inválidos."},
+            request=request,
+            name="auth/login.html",
+            context={"error": "Usuário ou senha inválidos."},
             status_code=401,
         )
 

@@ -150,4 +150,44 @@ document.addEventListener('DOMContentLoaded', function () {
         fetchUnreadCount();
         setInterval(fetchUnreadCount, 30000);
     }
+
+    // ------------------------------------------------------------------
+    // Tools – column selector for search bar
+    // ------------------------------------------------------------------
+    const searchColBtn   = document.getElementById('searchColBtn');
+    const searchColInput = document.getElementById('searchColInput');
+    const searchColLabel = document.getElementById('searchColLabel');
+    const searchInput    = document.getElementById('searchInput');
+
+    const colPlaceholders = {
+        'all':       'Buscar por nome ou tipo...',
+        'name':      'Buscar por nome...',
+        'origin_id': 'Buscar por ID origem...',
+        'tool_type': 'Buscar por tipo...',
+        'location':  'Buscar por localização (ex: G1D5)...',
+        'status':    'Crítico, Baixo ou OK...',
+    };
+
+    if (searchColBtn && searchColInput) {
+        document.querySelectorAll('#searchColMenu .dropdown-item').forEach(function (item) {
+            item.addEventListener('click', function (e) {
+                e.preventDefault();
+                const col = this.dataset.col;
+                searchColInput.value = col;
+                if (searchColLabel) searchColLabel.textContent = this.textContent.trim();
+                if (searchInput) searchInput.placeholder = colPlaceholders[col] || 'Buscar...';
+                // Mark active item
+                document.querySelectorAll('#searchColMenu .dropdown-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Highlight the currently active option on page load
+        const currentCol = searchColInput.value || 'all';
+        const activeItem = document.querySelector(`#searchColMenu .dropdown-item[data-col="${currentCol}"]`);
+        if (activeItem) activeItem.classList.add('active');
+        if (searchInput && colPlaceholders[currentCol]) {
+            searchInput.placeholder = colPlaceholders[currentCol];
+        }
+    }
 });

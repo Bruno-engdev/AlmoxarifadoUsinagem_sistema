@@ -17,8 +17,9 @@ router = APIRouter(prefix="/employees", tags=["employees"], dependencies=[Depend
 def employee_list(request: Request, db: Session = Depends(get_db)):
     employees = db.query(Employee).order_by(Employee.name).all()
     return request.app.state.templates.TemplateResponse(
-        "employees/index.html",
-        {"request": request, "employees": employees},
+        request=request,
+        name="employees/index.html",
+        context={"employees": employees},
     )
 
 
@@ -43,8 +44,9 @@ def employee_edit_form(employee_id: int, request: Request, db: Session = Depends
         return RedirectResponse(url="/employees", status_code=303)
     employees = db.query(Employee).order_by(Employee.name).all()
     return request.app.state.templates.TemplateResponse(
-        "employees/index.html",
-        {"request": request, "employees": employees, "editing": emp},
+        request=request,
+        name="employees/index.html",
+        context={"employees": employees, "editing": emp},
     )
 
 

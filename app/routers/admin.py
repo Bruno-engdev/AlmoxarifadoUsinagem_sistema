@@ -22,9 +22,9 @@ def list_users(
     """List all system users."""
     users = db.query(User).order_by(User.username).all()
     return request.app.state.templates.TemplateResponse(
-        "admin/users.html",
-        {
-            "request": request,
+        request=request,
+        name="admin/users.html",
+        context={
             "users": users,
             "current_user": admin,
             "active_page": "admin",
@@ -47,9 +47,9 @@ def create_user(
     if existing:
         users = db.query(User).order_by(User.username).all()
         return request.app.state.templates.TemplateResponse(
-            "admin/users.html",
-            {
-                "request": request,
+            request=request,
+            name="admin/users.html",
+            context={
                 "users": users,
                 "current_user": admin,
                 "active_page": "admin",
@@ -81,9 +81,9 @@ def edit_user_page(
     if not user:
         return RedirectResponse(url="/admin/users", status_code=302)
     return request.app.state.templates.TemplateResponse(
-        "admin/edit_user.html",
-        {
-            "request": request,
+        request=request,
+        name="admin/edit_user.html",
+        context={
             "edit_user": user,
             "current_user": admin,
             "active_page": "admin",

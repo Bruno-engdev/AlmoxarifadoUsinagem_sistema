@@ -56,7 +56,6 @@ class User(Base):
     def __repr__(self):
         return f"<User {self.username}>"
 
-
 class Machine(Base):
     """Machines in the machining sector."""
     __tablename__ = "machines"

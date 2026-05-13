@@ -2,106 +2,236 @@
 {% set active_page = "tools" %}
 
 {% block title %}Ferramentas – Almoxarifado{% endblock %}
+{% block topbar_title %}<i class="bi bi-wrench me-2"></i>Estoque de Ferramentas{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <h2 class="mb-0"><i class="bi bi-wrench me-2"></i>Estoque de Ferramentas</h2>
-    <a href="/tools/create" class="btn btn-success">
-        <i class="bi bi-plus-circle me-1"></i> Cadastrar Nova Ferramenta
-    </a>
+<!-- ====== Toolbar: actions left, search right ====== -->
+<div class="tools-toolbar">
+    <div class="tools-toolbar-left">
+        <a href="/tools/create" class="btn btn-sm btn-outline-secondary tools-action-btn">
+            <i class="bi bi-plus-circle me-1"></i> Cadastrar
+        </a>
+        <button type="button" class="btn btn-sm btn-outline-secondary tools-action-btn"
+                data-bs-toggle="modal" data-bs-target="#exportModal">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Exportar
+        </button>
+    </div>
+    <div class="tools-toolbar-right">
+        {% set col_label_map = {'all': 'Todos', 'name': 'Nome', 'origin_id': 'ID TOTVS', 'tool_type': 'Tipo', 'location': 'Localização', 'status': 'Status'} %}
+        <form method="GET" action="/tools" class="tools-search-form" id="searchForm">
+            <div class="input-group input-group-sm">
+                <input type="text" name="search" class="form-control form-control-sm" id="searchInput"
+                       placeholder="Buscar por nome ou tipo..." value="{{ search }}">
+                <input type="hidden" name="search_col" id="searchColInput" value="{{ search_col or 'all' }}">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                        data-bs-toggle="dropdown" aria-expanded="false" id="searchColBtn">
+                    <span id="searchColLabel">{{ col_label_map.get(search_col, 'Todos') }}</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" id="searchColMenu">
+                    <li><a class="dropdown-item" href="#" data-col="all">Todos</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" data-col="name">Nome</a></li>
+                    <li><a class="dropdown-item" href="#" data-col="origin_id">ID TOTVS</a></li>
+                    <li><a class="dropdown-item" href="#" data-col="tool_type">Tipo</a></li>
+                    <li><a class="dropdown-item" href="#" data-col="location">Localização</a></li>
+                    <li><a class="dropdown-item" href="#" data-col="status">Status</a></li>
+                </ul>
+                <button class="btn btn-sm btn-outline-secondary" type="submit">Buscar</button>
+                {% if search %}
+                <a href="/tools" class="btn btn-sm btn-outline-danger">Limpar</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
 </div>
 
-<!-- Search -->
-<form method="GET" action="/tools" class="mb-4">
-    <div class="input-group" style="max-width: 450px;">
-        <span class="input-group-text"><i class="bi bi-search"></i></span>
-        <input type="text" name="search" class="form-control"
-               placeholder="Buscar por nome ou tipo..." value="{{ search }}">
-        <button class="btn btn-outline-secondary" type="submit">Buscar</button>
-        {% if search %}
-        <a href="/tools" class="btn btn-outline-danger">Limpar</a>
-        {% endif %}
+<!-- ====== Tools Table (full-width, dense, ERP-style) ====== -->
+<div class="tools-grid-wrapper">
+    <div class="table-responsive">
+        <table class="table table-hover table-striped mb-0 align-middle tools-grid">
+            <thead>
+                <tr>
+                    <th class="sortable" data-sort-type="number" data-col="0">ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                    <th class="sortable" data-sort-type="string" data-col="1">ID TOTVS <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                    <th class="sortable" data-sort-type="string" data-col="2">Nome da Ferramenta <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                    <th class="sortable" data-sort-type="string" data-col="3">Tipo <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                    <th class="sortable" data-sort-type="string" data-col="4">Localização <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                    <th class="sortable text-center" data-sort-type="number" data-col="5">Mín. <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                    <th class="sortable text-center" data-sort-type="number" data-col="6">Máx. <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                    <th class="sortable text-center" data-sort-type="number" data-col="7">Estoque <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                    <th class="sortable text-center" data-sort-type="string" data-col="8">Status <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                    <th class="text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for t in tools %}
+                <tr>
+                    <td>{{ t.id }}</td>
+                    <td>{{ t.origin_id or "—" }}</td>
+                    <td>
+                        <a href="/tools/{{ t.id }}{% if search %}?ref={{ search|urlencode }}{% if search_col and search_col != 'all' %}&ref_col={{ search_col|urlencode }}{% endif %}{% endif %}" class="text-decoration-none fw-semibold">
+                            {{ t.name }}
+                        </a>
+                    </td>
+                    <td>{{ t.tool_type.name }}</td>
+                    <td>{{ t.location or "—" }}</td>
+                    <td class="text-center">{{ t.min_stock }}</td>
+                    <td class="text-center">{{ t.max_stock }}</td>
+                    <td class="text-center fw-bold">{{ t.current_stock }}</td>
+                    <td class="text-center">
+                        {% if t.status == "CRITICAL" %}
+                            <span class="badge bg-danger">CRÍTICO</span>
+                        {% elif t.status == "LOW STOCK" %}
+                            <span class="badge bg-warning text-dark">ESTOQUE BAIXO</span>
+                        {% else %}
+                            <span class="badge bg-success">OK</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-nowrap">
+                        <!-- Entrada -->
+                        <button class="btn btn-sm btn-outline-success"
+                                data-bs-toggle="modal"
+                                data-bs-target="#movementModal"
+                                onclick="prepareMovement({{ t.id }}, '{{ t.name }}', 'IN', 'REPOSICAO')">
+                            <i class="bi bi-plus-lg"></i> Entrada
+                        </button>
+                        <!-- Saída (Reposição) -->
+                        <button class="btn btn-sm btn-outline-danger"
+                                data-bs-toggle="modal"
+                                data-bs-target="#movementModal"
+                                onclick="prepareMovement({{ t.id }}, '{{ t.name }}', 'OUT', 'REPOSICAO')">
+                            <i class="bi bi-dash-lg"></i> Saída
+                        </button>
+                        <!-- Emprestar -->
+                        <button class="btn btn-sm btn-outline-secondary"
+                                data-bs-toggle="modal"
+                                data-bs-target="#movementModal"
+                                onclick="prepareMovement({{ t.id }}, '{{ t.name }}', 'OUT', 'EMPRESTIMO')">
+                            <i class="bi bi-person-badge"></i> Emprestar
+                        </button>
+                        
+                    </td>
+                </tr>
+            {% endfor %}
+            {% if not tools %}
+                <tr>
+                    <td colspan="10" class="text-center text-muted py-4">
+                        Nenhuma ferramenta encontrada. <a href="/tools/create">Cadastrar nova ferramenta</a>.
+                    </td>
+                </tr>
+            {% endif %}
+            </tbody>
+        </table>
     </div>
-</form>
+</div>
 
-<!-- Tools Table -->
-<div class="card">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover table-striped mb-0 align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th>ID</th>
-                        <th>ID Origem</th>
-                        <th>Nome da Ferramenta</th>
-                        <th>Tipo</th>
-                        <th>Localização</th>
-                        <th class="text-center">Mín.</th>
-                        <th class="text-center">Máx.</th>
-                        <th class="text-center">Estoque</th>
-                        <th class="text-center">Status</th>
-                        <th class="text-center">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                {% for t in tools %}
-                    <tr>
-                        <td>{{ t.id }}</td>
-                        <td>{{ t.origin_id or "—" }}</td>
-                        <td>
-                            <a href="/tools/{{ t.id }}" class="text-decoration-none fw-semibold">
-                                {{ t.name }}
-                            </a>
-                        </td>
-                        <td>{{ t.tool_type.name }}</td>
-                        <td>{{ t.location or "—" }}</td>
-                        <td class="text-center">{{ t.min_stock }}</td>
-                        <td class="text-center">{{ t.max_stock }}</td>
-                        <td class="text-center fw-bold">{{ t.current_stock }}</td>
-                        <td class="text-center">
-                            {% if t.status == "CRITICAL" %}
-                                <span class="badge bg-danger">CRÍTICO</span>
-                            {% elif t.status == "LOW STOCK" %}
-                                <span class="badge bg-warning text-dark">ESTOQUE BAIXO</span>
-                            {% else %}
-                                <span class="badge bg-success">OK</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-center text-nowrap">
-                            <!-- Entrada -->
-                            <button class="btn btn-sm btn-outline-success"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#movementModal"
-                                    onclick="prepareMovement({{ t.id }}, '{{ t.name }}', 'IN', 'REPOSICAO')">
-                                <i class="bi bi-plus-lg"></i> Entrada
-                            </button>
-                            <!-- Saída (Reposição) -->
-                            <button class="btn btn-sm btn-outline-danger"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#movementModal"
-                                    onclick="prepareMovement({{ t.id }}, '{{ t.name }}', 'OUT', 'REPOSICAO')">
-                                <i class="bi bi-dash-lg"></i> Saída
-                            </button>
-                            <!-- Emprestar -->
-                            <button class="btn btn-sm btn-outline-secondary"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#movementModal"
-                                    onclick="prepareMovement({{ t.id }}, '{{ t.name }}', 'OUT', 'EMPRESTIMO')">
-                                <i class="bi bi-person-badge"></i> Emprestar
-                            </button>
-                            
-                        </td>
-                    </tr>
-                {% endfor %}
-                {% if not tools %}
-                    <tr>
-                        <td colspan="10" class="text-center text-muted py-4">
-                            Nenhuma ferramenta encontrada. <a href="/tools/create">Cadastrar nova ferramenta</a>.
-                        </td>
-                    </tr>
-                {% endif %}
-                </tbody>
-            </table>
+<!-- ====== Export Modal (sidebar layout) ====== -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportModalLabel">
+                    <i class="bi bi-file-earmark-spreadsheet me-2"></i>Exportar Estoque de Ferramentas
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="export-modal-layout">
+                    <!-- Sidebar -->
+                    <div class="export-sidebar">
+                        <button type="button" class="export-sidebar-item active" data-panel="browse">
+                            <i class="bi bi-file-earmark-spreadsheet me-2"></i>Imprimir Browse
+                        </button>
+                        <button type="button" class="export-sidebar-item" data-panel="labels">
+                            <i class="bi bi-tag me-2"></i>Gerar Etiqueta
+                        </button>
+                    </div>
+                    <!-- Panels -->
+                    <div class="export-panels">
+                        <!-- Panel: Imprimir Browse -->
+                        <div class="export-panel active" id="panelBrowse">
+                            <form method="GET" action="/tools/export/xlsx" id="exportForm">
+                                <input type="hidden" name="search" value="{{ search }}">
+                                <input type="hidden" name="search_col" value="{{ search_col or 'all' }}">
+
+                                <p class="text-muted mb-3" style="font-size: 0.82rem;">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    A exportação seguirá os filtros atuais da tela.
+                                    Selecione as colunas que deseja incluir na planilha.
+                                </p>
+
+                                <div class="export-col-toolbox">
+                                    <div class="export-col-actions mb-2">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="exportSelectAll">
+                                            <i class="bi bi-check-all me-1"></i>Selecionar todas
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="exportClearAll">
+                                            <i class="bi bi-x-lg me-1"></i>Limpar seleção
+                                        </button>
+                                    </div>
+                                    <div class="export-col-grid">
+                                        <label class="export-col-item">
+                                            <input type="checkbox" name="columns" value="id" checked> ID
+                                        </label>
+                                        <label class="export-col-item">
+                                            <input type="checkbox" name="columns" value="origin_id" checked> ID TOTVS
+                                        </label>
+                                        <label class="export-col-item">
+                                            <input type="checkbox" name="columns" value="name" checked> Nome da Ferramenta
+                                        </label>
+                                        <label class="export-col-item">
+                                            <input type="checkbox" name="columns" value="tool_type" checked> Tipo
+                                        </label>
+                                        <label class="export-col-item">
+                                            <input type="checkbox" name="columns" value="location" checked> Localização
+                                        </label>
+                                        <label class="export-col-item">
+                                            <input type="checkbox" name="columns" value="min_stock" checked> Mín.
+                                        </label>
+                                        <label class="export-col-item">
+                                            <input type="checkbox" name="columns" value="max_stock" checked> Máx.
+                                        </label>
+                                        <label class="export-col-item">
+                                            <input type="checkbox" name="columns" value="current_stock" checked> Estoque
+                                        </label>
+                                        <label class="export-col-item">
+                                            <input type="checkbox" name="columns" value="status" checked> Status
+                                        </label>
+                                    </div>
+                                    <div class="text-danger mt-2 d-none" id="exportNoColsWarning" style="font-size: 0.8rem;">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>Selecione ao menos uma coluna.
+                                    </div>
+                                </div>
+
+                                <div class="mt-3 text-end">
+                                    <button type="submit" class="btn btn-primary" id="exportSubmitBtn">
+                                        <i class="bi bi-download me-1"></i>Exportar XLSX
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        <!-- Panel: Gerar Etiqueta -->
+                        <div class="export-panel" id="panelLabels">
+                            <p class="text-muted mb-3" style="font-size: 0.82rem;">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Gera uma página de etiquetas para impressão em folha A4 (4 colunas × 13 linhas por folha).
+                                Os filtros atuais do browse serão respeitados.
+                                Cada etiqueta contém o <strong>ID TOTVS</strong> e o <strong>Nome da Ferramenta</strong>.
+                                Utiliza quantas folhas forem necessárias.
+                            </p>
+                            <p class="mb-3" style="font-size: 0.82rem; color: var(--text-secondary);">
+                                <i class="bi bi-printer me-1"></i>
+                                Após abrir a página, use <kbd>Ctrl + P</kbd> para imprimir.
+                            </p>
+                            <div class="text-end">
+                                <a id="labelsPrintLink" href="/tools/print/labels" target="_blank" class="btn btn-primary">
+                                    <i class="bi bi-printer me-1"></i>Abrir Página de Impressão
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -118,6 +248,7 @@
                 <input type="hidden" name="tool_id" id="mvToolId">
                 <input type="hidden" name="movement_type" id="mvType">
                 <input type="hidden" name="category" id="mvCategory">
+                <input type="hidden" name="redirect_to" id="mvRedirectTo">
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Ferramenta</label>
@@ -172,11 +303,148 @@
 
 {% block scripts %}
 <script>
+// ====== Sortable Table ======
+(function() {
+    const table = document.querySelector('table.table');
+    if (!table) return;
+    const headers = table.querySelectorAll('th.sortable');
+    const tbody = table.querySelector('tbody');
+
+    headers.forEach(function(th) {
+        th.addEventListener('click', function() {
+            const col = parseInt(th.dataset.col);
+            const type = th.dataset.sortType;
+            const icon = th.querySelector('.sort-icon');
+            let dir = 'asc';
+
+            if (th.classList.contains('asc')) {
+                dir = 'desc';
+            }
+
+            // Reset all headers
+            headers.forEach(function(h) {
+                h.classList.remove('asc', 'desc');
+                const ic = h.querySelector('.sort-icon');
+                ic.className = 'bi bi-arrow-down-up sort-icon';
+            });
+
+            th.classList.add(dir);
+            icon.className = dir === 'asc'
+                ? 'bi bi-arrow-up sort-icon'
+                : 'bi bi-arrow-down sort-icon';
+
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            rows.sort(function(a, b) {
+                const cellA = a.children[col];
+                const cellB = b.children[col];
+                if (!cellA || !cellB) return 0;
+                let valA = (cellA.textContent || '').trim();
+                let valB = (cellB.textContent || '').trim();
+
+                if (type === 'number') {
+                    valA = parseFloat(valA) || 0;
+                    valB = parseFloat(valB) || 0;
+                    return dir === 'asc' ? valA - valB : valB - valA;
+                }
+                // string / alphabetical
+                valA = valA.toLowerCase();
+                valB = valB.toLowerCase();
+                if (valA < valB) return dir === 'asc' ? -1 : 1;
+                if (valA > valB) return dir === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            rows.forEach(function(row) { tbody.appendChild(row); });
+        });
+    });
+})();
+
+// ====== Export Modal – sidebar navigation + column selection ======
+(function() {
+    var exportModalEl = document.getElementById('exportModal');
+    if (!exportModalEl) return;
+
+    // Sidebar panel switching
+    var sidebarItems = exportModalEl.querySelectorAll('.export-sidebar-item');
+    var panels = exportModalEl.querySelectorAll('.export-panel');
+
+    sidebarItems.forEach(function(item) {
+        item.addEventListener('click', function() {
+            var target = item.dataset.panel;
+            sidebarItems.forEach(function(si) { si.classList.remove('active'); });
+            panels.forEach(function(p) { p.classList.remove('active'); });
+            item.classList.add('active');
+            var panelId = target === 'browse' ? 'panelBrowse' : 'panelLabels';
+            document.getElementById(panelId).classList.add('active');
+        });
+    });
+
+    // Update labels print link with current filters
+    var labelLink = document.getElementById('labelsPrintLink');
+    if (labelLink) {
+        var params = new URLSearchParams();
+        var searchVal = '{{ search|e }}';
+        var searchColVal = '{{ search_col or "all" }}';
+        if (searchVal) params.set('search', searchVal);
+        if (searchColVal && searchColVal !== 'all') params.set('search_col', searchColVal);
+        var qs = params.toString();
+        labelLink.href = '/tools/print/labels' + (qs ? '?' + qs : '');
+    }
+
+    // Column selection logic
+    var form = document.getElementById('exportForm');
+    var warning = document.getElementById('exportNoColsWarning');
+    var submitBtn = document.getElementById('exportSubmitBtn');
+    var selectAll = document.getElementById('exportSelectAll');
+    var clearAll = document.getElementById('exportClearAll');
+    if (!form) return;
+
+    function getCheckboxes() {
+        return form.querySelectorAll('input[name="columns"]');
+    }
+    function updateState() {
+        var checked = form.querySelectorAll('input[name="columns"]:checked');
+        if (checked.length === 0) {
+            warning.classList.remove('d-none');
+            submitBtn.disabled = true;
+        } else {
+            warning.classList.add('d-none');
+            submitBtn.disabled = false;
+        }
+    }
+
+    getCheckboxes().forEach(function(cb) {
+        cb.addEventListener('change', updateState);
+    });
+
+    selectAll.addEventListener('click', function() {
+        getCheckboxes().forEach(function(cb) { cb.checked = true; });
+        updateState();
+    });
+    clearAll.addEventListener('click', function() {
+        getCheckboxes().forEach(function(cb) { cb.checked = false; });
+        updateState();
+    });
+
+    // Reset state when modal is opened
+    exportModalEl.addEventListener('show.bs.modal', function() {
+        // Reset to first panel
+        sidebarItems.forEach(function(si) { si.classList.remove('active'); });
+        panels.forEach(function(p) { p.classList.remove('active'); });
+        sidebarItems[0].classList.add('active');
+        panels[0].classList.add('active');
+        // Reset checkboxes
+        getCheckboxes().forEach(function(cb) { cb.checked = true; });
+        updateState();
+    });
+})();
+
 function prepareMovement(toolId, toolName, type, category) {
     document.getElementById('mvToolId').value = toolId;
     document.getElementById('mvToolName').value = toolName;
     document.getElementById('mvType').value = type;
     document.getElementById('mvCategory').value = category;
+    document.getElementById('mvRedirectTo').value = window.location.pathname + window.location.search;
 
     const title = document.getElementById('movementModalTitle');
     const btn = document.getElementById('mvSubmitBtn');

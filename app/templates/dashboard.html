@@ -2,60 +2,14 @@
 {% set active_page = "dashboard" %}
 
 {% block title %}Painel – Almoxarifado de Ferramentas{% endblock %}
+{% block topbar_title %}<i class="bi bi-speedometer2 me-2"></i>Painel{% endblock %}
 
 {% block content %}
-<h2 class="mb-3"><i class="bi bi-speedometer2 me-2"></i>Painel de Controle</h2>
-
-<!-- ================================================================ -->
-<!-- ALERTS — Action priority zone (shown first)                      -->
-<!-- ================================================================ -->
-{% if tools_below %}
-<div class="alert alert-danger d-flex align-items-start mb-3" role="alert">
-    <i class="bi bi-exclamation-triangle-fill me-2 fs-4 mt-1 flex-shrink-0"></i>
-    <div class="flex-grow-1">
-        <strong>{{ tools_below_count }} ferramenta(s) abaixo do estoque mínimo</strong>
-        <ul class="mb-0 mt-1 list-unstyled">
-        {% for t in tools_below[:5] %}
-            <li class="mb-1">
-                <a href="/tools/{{ t.id }}" class="text-decoration-none">
-                    <strong>{{ t.name }}</strong>
-                </a>
-                <span class="text-muted">— Estoque: <strong class="text-danger">{{ t.current_stock }}</strong> / Mín: {{ t.min_stock }}</span>
-            </li>
-        {% endfor %}
-        {% if tools_below|length > 5 %}
-            <li class="text-muted small mt-1">… e mais {{ tools_below|length - 5 }} ferramenta(s)
-                <a href="/tools" class="ms-1">Ver todas</a>
-            </li>
-        {% endif %}
-        </ul>
-    </div>
-</div>
-{% endif %}
-
-{% if approaching %}
-<div class="alert alert-warning d-flex align-items-start mb-3" role="alert">
-    <i class="bi bi-exclamation-circle-fill me-2 fs-4 mt-1 flex-shrink-0"></i>
-    <div class="flex-grow-1">
-        <strong>{{ approaching|length }} ferramenta(s) próxima(s) do estoque mínimo</strong>
-        <ul class="mb-0 mt-1 list-unstyled">
-        {% for t in approaching[:5] %}
-            <li class="mb-1">
-                <a href="/tools/{{ t.id }}" class="text-decoration-none">
-                    <strong>{{ t.name }}</strong>
-                </a>
-                <span class="text-muted">— Estoque: {{ t.current_stock }} / Mín: {{ t.min_stock }}</span>
-            </li>
-        {% endfor %}
-        </ul>
-    </div>
-</div>
-{% endif %}
 
 <!-- ================================================================ -->
 <!-- FILTER BAR                                                       -->
 <!-- ================================================================ -->
-<div class="card mb-4 shadow-sm">
+<div class="card mb-3 shadow-sm">
     <div class="card-body py-3">
         <form method="get" action="/" id="filterForm" class="row g-2 align-items-end">
             <div class="col-lg col-md-6">
@@ -93,117 +47,62 @@
                 </a>
             </div>
         </form>
-    </div>
-</div>
+        <div class="row mt-3 g-3">
+            <div class="col-xl-3 col-md-6">
+                <div class="card kpi-card h-100 shadow-sm">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="kpi-icon kpi-icon-blue"><i class="bi bi-graph-down"></i></div>
+                        <div>
+                            <h3 class="mb-0" id="kpi-consumption">{{ consumption_period }}</h3>
+                            <small class="text-muted">Consumo no Período</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-<!-- ================================================================ -->
-<!-- KPI CARDS                                                        -->
-<!-- ================================================================ -->
-<div class="row g-3 mb-4">
-    <!--<div class="col-xl-3 col-md-6">
-        <div class="card border-start border-4 h-100 shadow-sm">
-            <div class="card-body d-flex align-items-center">
-                <i class="bi bi-wrench display-5 me-3 opacity-75"></i>
-                <div>
-                    <h3 class="mb-0" id="kpi-tools">{{ total_tools }}</h3>
-                    <small>Total de Ferramentas</small>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card kpi-card h-100 shadow-sm">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="kpi-icon kpi-icon-green"><i class="bi bi-currency-dollar"></i></div>
+                            <div>
+                                <h4 class="mb-0" id="kpi-stock-value">R$ {{ "%.2f"|format(total_stock_value) }}</h4>
+                                <small class="text-muted">Valor Total em Estoque</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div> -->
-    <div class="col-xl-3 col-md-6">
-        <div class="card kpi-card h-100 shadow-sm">
-            <div class="card-body d-flex align-items-center">
-                <div class="kpi-icon kpi-icon-blue"><i class="bi bi-graph-down"></i></div>
-                <div>
-                    <h3 class="mb-0" id="kpi-consumption">{{ consumption_period }}</h3>
-                    <small class="text-muted">Consumo no Período</small>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card kpi-card h-100 shadow-sm">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="kpi-icon kpi-icon-red"><i class="bi bi-exclamation-triangle"></i></div>
+                            <div>
+                                <h3 class="mb-0" id="kpi-below">{{ tools_below_count }}</h3>
+                                <small class="text-muted">Abaixo do Mínimo</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="col-xl-3 col-md-6">
-        <div class="card kpi-card h-100 shadow-sm">
-            <div class="card-body d-flex align-items-center">
-                <div class="kpi-icon kpi-icon-green"><i class="bi bi-currency-dollar"></i></div>
-                <div>
-                    <h4 class="mb-0" id="kpi-stock-value">R$ {{ "%.2f"|format(total_stock_value) }}</h4>
-                    <small class="text-muted">Valor Total em Estoque</small>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card kpi-card h-100 shadow-sm">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="kpi-icon kpi-icon-teal"><i class="bi bi-shield-check"></i></div>
+                            <div>
+                                <h4 class="mb-0" id="kpi-critical">{{ critical_avail.pct }}%</h4>
+                                <small class="text-muted">Disp. Críticas</small>
+                                <div class="text-muted small">{{ critical_avail.ok }} / {{ critical_avail.total }}</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
     </div>
-
-    <!--<div class="col-xl-3 col-md-6">
-        <div class="card border-start border-4 h-100 shadow-sm">
-            <div class="card-body d-flex align-items-center">
-                <i class="bi bi-arrow-left-right display-5 me-3 opacity-75"></i>
-                <div>
-                    <h3 class="mb-0" id="kpi-movements">{{ movements_period }}</h3>
-                    <small>Movimentações no Período</small>
-                </div>
-            </div>
-        </div>
-    </div>-->
-    <div class="col-xl-3 col-md-6">
-        <div class="card kpi-card {% if tools_below_count > 0 %}kpi-card-danger{% endif %} h-100 shadow-sm">
-            <div class="card-body d-flex align-items-center">
-                <div class="kpi-icon kpi-icon-red"><i class="bi bi-exclamation-triangle"></i></div>
-                <div>
-                    <h3 class="mb-0" id="kpi-below">{{ tools_below_count }}</h3>
-                    <small class="text-muted">Abaixo do Mínimo</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-xl-3 col-md-6">
-        <div class="card kpi-card h-100 shadow-sm">
-            <div class="card-body d-flex align-items-center">
-                <div class="kpi-icon kpi-icon-teal"><i class="bi bi-shield-check"></i></div>
-                <div>
-                    <h4 class="mb-0" id="kpi-critical">{{ critical_avail.pct }}%</h4>
-                    <small class="text-muted">Disp. Críticas</small>
-                    <div class="text-muted small">{{ critical_avail.ok }} / {{ critical_avail.total }}</div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- ================================================================ -->
-<!-- STRATEGIC KPI CARDS                                              -->
-<!-- ================================================================ -->
-<div class="row g-3 mb-4">
-    
-    <!--<div class="col-xl-3 col-md-6">
-        <div class="card border-start border-4 h-100 shadow-sm">
-            <div class="card-body d-flex align-items-center">
-                <i class="bi bi-piggy-bank display-5 me-3 text-warning opacity-75"></i>
-                <div>
-                    <h4 class="mb-0" id="kpi-capital-idle">R$ {{ "%.2f"|format(capital_idle) }}</h4>
-                    <small class="text-muted">Capital Parado (Ociosas)</small>
-                </div>
-            </div>
-        </div>
-    </div>-->
-    
-    <!--<div class="col-xl-3 col-md-6">
-        <div class="card border-start border-4 h-100 shadow-sm">
-            <div class="card-body d-flex align-items-center">
-                <i class="bi bi-clock-history display-5 me-3 text-primary opacity-75"></i>
-                <div>
-                    <h4 class="mb-0" id="kpi-lifespan">{{ avg_lifespan }}h</h4>
-                    <small class="text-muted">Vida Útil Média</small>
-                </div>
-            </div>
-        </div>
-    </div>-->
 </div>
 
 <!-- ================================================================ -->
 <!-- CHARTS – Row 1: Consumption + Entries vs Exits                   -->
 <!-- ================================================================ -->
+
 <div class="row g-4 mb-4">
     <div class="col-lg-6">
         <div class="card shadow-sm h-100">

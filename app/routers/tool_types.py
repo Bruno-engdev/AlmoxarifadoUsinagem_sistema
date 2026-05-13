@@ -17,8 +17,9 @@ router = APIRouter(prefix="/tool-types", tags=["tool_types"], dependencies=[Depe
 def tool_types_list(request: Request, db: Session = Depends(get_db)):
     types = db.query(ToolType).order_by(ToolType.name).all()
     return request.app.state.templates.TemplateResponse(
-        "tool_types/index.html",
-        {"request": request, "tool_types": types},
+        request=request,
+        name="tool_types/index.html",
+        context={"tool_types": types},
     )
 
 

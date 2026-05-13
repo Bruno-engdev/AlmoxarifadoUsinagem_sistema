@@ -152,17 +152,25 @@ body {
 .topbar-left {
     display: flex;
     align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
 }
 .topbar-title {
+    display: block;
+    min-width: 0;
     font-weight: 600;
     font-size: 1rem;
     color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .topbar-right {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    flex-shrink: 0;
 }
 
 .topbar-icon-wrapper {
@@ -283,15 +291,30 @@ body {
     #topbar {
         left: 0;
     }
+    .topbar-title {
+        font-size: 0.95rem;
+    }
     .main-content {
         margin-left: 0;
+    }
+}
+
+@media (max-width: 575.98px) {
+    #topbar {
+        padding: 0 0.75rem;
+    }
+    .topbar-logo {
+        margin-right: 0.5rem;
+    }
+    .topbar-title {
+        font-size: 0.88rem;
     }
 }
 
 /* ====== Cards ====== */
 .card {
     border: 1px solid var(--border-color);
-    border-radius: 0.75rem;
+    border-radius: 0.25rem;
     background-color: var(--bg-card);
     box-shadow: 0 2px 8px var(--shadow-color);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -311,32 +334,32 @@ body {
 .card-body {
     background-color: var(--bg-card);
     color: var(--text-primary);
-    border-radius: 0.75rem;
+    border-radius: 0.25rem;
 }
 
 /* Dashboard summary cards */
 .card.text-bg-primary {
     background: linear-gradient(135deg, #3b5bdb, #5c7cfa) !important;
     border: none;
-    border-radius: 0.75rem;
+    border-radius: 0.25rem;
 }
 
 .card.text-bg-danger {
     background: linear-gradient(135deg, #c92a2a, #f03e3e) !important;
     border: none;
-    border-radius: 0.75rem;
+    border-radius: 0.25rem;
 }
 
 .card.text-bg-info {
     background: linear-gradient(135deg, #1098ad, #22b8cf) !important;
     border: none;
-    border-radius: 0.75rem;
+    border-radius: 0.25rem;
 }
 
 .card.text-bg-warning {
     background: linear-gradient(135deg, #e67700, #f59f00) !important;
     border: none;
-    border-radius: 0.75rem;
+    border-radius: 0.25rem;
 }
 
 .card.text-bg-primary, .card.text-bg-danger,
@@ -922,13 +945,6 @@ hr {
     border: 1px solid var(--border-color);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-.kpi-card:hover {
-    transform: translateY(-2px);
-}
-.kpi-card-danger {
-    border-left: 4px solid var(--accent-red);
-}
-
 .kpi-icon {
     width: 48px;
     height: 48px;
@@ -973,6 +989,28 @@ hr {
 }
 .operation-indicator i {
     font-size: 1.1rem;
+}
+
+/* ====== Sortable Table Headers ====== */
+th.sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: 1.4rem !important;
+    transition: background-color 0.15s ease;
+}
+th.sortable:hover {
+    background-color: var(--hover-bg);
+}
+th.sortable .sort-icon {
+    margin-left: 4px;
+    font-size: 0.75rem;
+    opacity: 0.4;
+    transition: opacity 0.15s ease;
+}
+th.sortable.asc .sort-icon,
+th.sortable.desc .sort-icon {
+    opacity: 1;
 }
 .op-entry {
     background-color: rgba(143, 191, 160, 0.12);
@@ -1081,5 +1119,232 @@ hr {
     }
     .actions-col {
         min-width: auto !important;
+    }
+}
+
+/* ============================================================
+   TOOLS PAGE – ERP-style layout (scoped to tools page only)
+   ============================================================ */
+
+/* Page title – thin bar, like TOTVS module header */
+.tools-page-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 0.5rem 0;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border-color);
+    letter-spacing: 0.2px;
+}
+
+/* Toolbar – actions left, search right */
+.tools-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.tools-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+.tools-toolbar-right {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    flex: 0 1 auto;
+}
+.tools-action-btn {
+    font-size: 0.78rem;
+    padding: 0.3rem 0.65rem;
+    font-weight: 500;
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+.tools-action-btn:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+}
+.tools-search-form {
+    max-width: 480px;
+}
+.tools-search-form .input-group {
+    border-radius: 4px;
+}
+.tools-search-icon {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Export modal – column selector */
+.export-col-toolbox {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.75rem;
+}
+.export-col-actions {
+    display: flex;
+    gap: 0.35rem;
+}
+.export-col-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem 0.75rem;
+}
+.export-col-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.2rem 0;
+}
+.export-col-item input[type="checkbox"] {
+    accent-color: var(--accent-blue);
+    cursor: pointer;
+}
+@media (max-width: 575.98px) {
+    .export-col-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Export modal – sidebar layout */
+.export-modal-layout {
+    display: flex;
+    min-height: 300px;
+}
+.export-sidebar {
+    width: 180px;
+    flex-shrink: 0;
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem 0;
+}
+.export-sidebar-item {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+.export-sidebar-item:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+.export-sidebar-item.active {
+    background-color: var(--bg-tertiary);
+    color: var(--accent-blue);
+    border-left-color: var(--accent-blue);
+    font-weight: 600;
+}
+.export-panels {
+    flex: 1;
+    padding: 1rem 1.25rem;
+    overflow-y: auto;
+}
+.export-panel {
+    display: none;
+}
+.export-panel.active {
+    display: block;
+}
+@media (max-width: 575.98px) {
+    .export-modal-layout {
+        flex-direction: column;
+    }
+    .export-sidebar {
+        width: 100%;
+        flex-direction: row;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 0;
+    }
+    .export-sidebar-item {
+        flex: 1;
+        justify-content: center;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+        padding: 0.5rem;
+    }
+    .export-sidebar-item.active {
+        border-left-color: transparent;
+        border-bottom-color: var(--accent-blue);
+    }
+}
+
+/* Grid wrapper – no card, no shadow, just the table */
+.tools-grid-wrapper {
+    border: 1px solid var(--border-color);
+    border-top: none;
+    background-color: var(--bg-card);
+}
+
+/* Table – denser, flatter, full-width ERP grid */
+.tools-grid {
+    font-size: 0.82rem;
+    margin-bottom: 0;
+}
+.tools-grid thead th {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.45rem 0.6rem;
+    border-bottom: 2px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+    white-space: nowrap;
+    vertical-align: middle;
+}
+.tools-grid thead th:last-child {
+    border-right: none;
+}
+.tools-grid tbody td {
+    padding: 0.35rem 0.6rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-color);
+    line-height: 1.35;
+}
+.tools-grid tbody tr:hover {
+    background-color: var(--hover-bg) !important;
+}
+
+/* Row action buttons – slightly smaller for density */
+.tools-grid .btn-sm {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.45rem;
+}
+
+/* Responsive */
+@media (max-width: 767.98px) {
+    .tools-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .tools-toolbar-right {
+        margin-left: 0;
+    }
+    .tools-search-form {
+        max-width: 100%;
     }
 }

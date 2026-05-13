@@ -2,12 +2,11 @@
 {% set active_page = "tools" %}
 
 {% block title %}Cadastrar Ferramenta – Almoxarifado{% endblock %}
+{% block topbar_title %}<i class="bi bi-plus-circle me-2"></i>Cadastrar Nova Ferramenta{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-lg-8">
-        <h2 class="mb-4"><i class="bi bi-plus-circle me-2"></i>Cadastrar Nova Ferramenta</h2>
-
         <div class="card shadow-sm">
             <div class="card-body">
                 <form method="POST" action="/tools/create">
@@ -18,7 +17,7 @@
                                    required placeholder="Ex: Fresa de Topo Metal Duro 10mm">
                         </div>
                         <div class="col-md-3">
-                            <label for="origin_id" class="form-label fw-semibold">ID Origem</label>
+                            <label for="origin_id" class="form-label fw-semibold">ID TOTVS</label>
                             <input type="text" name="origin_id" id="origin_id" class="form-control"
                                    placeholder="Ex: FRS-001">
                         </div>

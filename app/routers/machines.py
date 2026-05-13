@@ -17,8 +17,9 @@ router = APIRouter(prefix="/machines", tags=["machines"], dependencies=[Depends(
 def machines_list(request: Request, db: Session = Depends(get_db)):
     machines = db.query(Machine).order_by(Machine.name).all()
     return request.app.state.templates.TemplateResponse(
-        "machines/index.html",
-        {"request": request, "machines": machines},
+        request=request,
+        name="machines/index.html",
+        context={"machines": machines},
     )
 
 

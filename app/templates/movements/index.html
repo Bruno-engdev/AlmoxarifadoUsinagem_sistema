@@ -2,96 +2,119 @@
 {% set active_page = "movements" %}
 
 {% block title %}Movimentações – Almoxarifado{% endblock %}
+{% block topbar_title %}<i class="bi bi-arrow-left-right me-2"></i>Movimentações{% endblock %}
 
 {% block content %}
-<!-- Page header -->
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <h2 class="mb-0"><i class="bi bi-arrow-left-right me-2"></i>Movimentações</h2>
-</div>
-
 <!-- Category tabs — primary context selector -->
-<div class="category-tabs mb-3">
-    <a href="/movements?category=EMPRESTIMO&tool_id={{ selected_tool_id }}&sort={{ sort }}"
+<div class="category-tabs mb-0">
+    <a href="/movements?category=EMPRESTIMO&tool_id={{ selected_tool_id }}&sort={{ sort }}&search={{ search }}&search_col={{ search_col }}&date_from={{ date_from }}&date_to={{ date_to }}"
        class="category-tab {% if category == 'EMPRESTIMO' %}active{% endif %}">
         <i class="bi bi-person-badge me-1"></i>Empréstimos
     </a>
-    <a href="/movements?category=REPOSICAO&tool_id={{ selected_tool_id }}&sort={{ sort }}"
+    <a href="/movements?category=REPOSICAO&tool_id={{ selected_tool_id }}&sort={{ sort }}&search={{ search }}&search_col={{ search_col }}&date_from={{ date_from }}&date_to={{ date_to }}"
        class="category-tab {% if category == 'REPOSICAO' %}active{% endif %}">
         <i class="bi bi-gear me-1"></i>Reposições
     </a>
 </div>
 
-<!-- Filters -->
-<div class="card filter-card mb-3">
-    <div class="card-body py-2 px-3">
-        <form method="GET" action="/movements" class="row g-2 align-items-end">
+<!-- ====== Toolbar: filters left, search right ====== -->
+{% set mv_col_labels = {'all': 'Todos', 'tool': 'Ferramenta', 'employee': 'Funcionário', 'machine': 'Máquina', 'type': 'Tipo', 'notes': 'Observações', 'status': 'Status'} %}
+<div class="tools-toolbar">
+    <div class="tools-toolbar-left d-flex align-items-center gap-2">
+        <form method="GET" action="/movements" class="d-flex align-items-center gap-2" id="toolFilterForm">
             <input type="hidden" name="category" value="{{ category }}">
-            <div class="col-lg-4 col-md-5">
-                <label class="form-label mb-1 small text-muted">Ferramenta</label>
-                <select name="tool_id" class="form-select form-select-sm">
-                    <option value="0">Todas as Ferramentas</option>
-                    {% for t in tools %}
-                    <option value="{{ t.id }}" {% if selected_tool_id == t.id %}selected{% endif %}>
-                        {{ t.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-lg-3 col-md-4">
-                <label class="form-label mb-1 small text-muted">Ordenação</label>
-                <select name="sort" class="form-select form-select-sm">
-                    <option value="desc" {% if sort == 'desc' %}selected{% endif %}>Mais Recentes</option>
-                    <option value="asc" {% if sort == 'asc' %}selected{% endif %}>Mais Antigos</option>
-                </select>
-            </div>
-            <div class="col-auto d-flex gap-2">
-                <button class="btn btn-primary btn-sm" type="submit">
-                    <i class="bi bi-funnel me-1"></i>Filtrar
+            <input type="hidden" name="sort" value="{{ sort }}">
+            <input type="hidden" name="search" value="{{ search }}">
+            <input type="hidden" name="search_col" value="{{ search_col }}">
+            <input type="hidden" name="date_from" value="{{ date_from }}">
+            <input type="hidden" name="date_to" value="{{ date_to }}">
+            <select name="tool_id" class="form-select form-select-sm" style="max-width:220px;" onchange="this.form.submit()">
+                <option value="0">Todas as Ferramentas</option>
+                {% for t in tools %}
+                <option value="{{ t.id }}" {% if selected_tool_id == t.id %}selected{% endif %}>
+                    {{ t.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+        <form method="GET" action="/movements" class="d-flex align-items-center gap-1" id="dateFilterForm">
+            <input type="hidden" name="category" value="{{ category }}">
+            <input type="hidden" name="sort" value="{{ sort }}">
+            <input type="hidden" name="search" value="{{ search }}">
+            <input type="hidden" name="search_col" value="{{ search_col }}">
+            <input type="hidden" name="tool_id" value="{{ selected_tool_id }}">
+            <input type="date" name="date_from" class="form-control form-control-sm" style="max-width:140px;"
+                   value="{{ date_from }}" title="Data inicial">
+            <span class="text-muted small">até</span>
+            <input type="date" name="date_to" class="form-control form-control-sm" style="max-width:140px;"
+                   value="{{ date_to }}" title="Data final">
+            <button type="submit" class="btn btn-sm btn-outline-secondary tools-action-btn" title="Filtrar por data">
+                <i class="bi bi-calendar-check"></i>
+            </button>
+        </form>
+        {% if (selected_tool_id and selected_tool_id != 0) or search or date_from or date_to %}
+        <a href="/movements?category={{ category }}" class="btn btn-sm btn-outline-secondary tools-action-btn">
+            <i class="bi bi-x-lg me-1"></i>Limpar
+        </a>
+        {% endif %}
+    </div>
+    <div class="tools-toolbar-right">
+        <form method="GET" action="/movements" class="tools-search-form" id="mvSearchForm">
+            <input type="hidden" name="category" value="{{ category }}">
+            <input type="hidden" name="tool_id" value="{{ selected_tool_id }}">
+            <input type="hidden" name="sort" value="{{ sort }}">
+            <input type="hidden" name="date_from" value="{{ date_from }}">
+            <input type="hidden" name="date_to" value="{{ date_to }}">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text tools-search-icon"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" class="form-control form-control-sm" id="mvSearchInput"
+                       placeholder="Buscar..." value="{{ search }}">
+                <input type="hidden" name="search_col" id="mvSearchColInput" value="{{ search_col or 'all' }}">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                        data-bs-toggle="dropdown" aria-expanded="false" id="mvSearchColBtn">
+                    <span id="mvSearchColLabel">{{ mv_col_labels.get(search_col, 'Todos') }}</span>
                 </button>
-                <a href="/movements?category={{ category }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-x-lg me-1"></i>Limpar
-                </a>
+                <ul class="dropdown-menu dropdown-menu-end" id="mvSearchColMenu">
+                    <li><a class="dropdown-item" href="#" data-col="all">Todos</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" data-col="tool">Ferramenta</a></li>
+                    {% if category == 'EMPRESTIMO' %}
+                    <li><a class="dropdown-item" href="#" data-col="employee">Funcionário</a></li>
+                    {% else %}
+                    <li><a class="dropdown-item" href="#" data-col="machine">Máquina</a></li>
+                    {% endif %}
+                    <li><a class="dropdown-item" href="#" data-col="type">Tipo</a></li>
+                    {% if category == 'EMPRESTIMO' %}
+                    <li><a class="dropdown-item" href="#" data-col="status">Status</a></li>
+                    {% endif %}
+                    <li><a class="dropdown-item" href="#" data-col="notes">Observações</a></li>
+                </ul>
+                <button class="btn btn-sm btn-outline-secondary" type="submit">Buscar</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Active filter chips -->
-{% if selected_tool_id and selected_tool_id != 0 %}
-<div class="mb-3 d-flex align-items-center gap-2 flex-wrap">
-    <span class="text-muted small">Filtros ativos:</span>
-    {% for t in tools %}
-        {% if t.id == selected_tool_id %}
-        <span class="filter-chip">
-            <i class="bi bi-wrench me-1"></i>{{ t.name }}
-            <a href="/movements?category={{ category }}&sort={{ sort }}" class="filter-chip-remove" title="Remover filtro">&times;</a>
-        </span>
-        {% endif %}
-    {% endfor %}
-</div>
-{% endif %}
-
 <!-- Movements Table -->
-<div class="card">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle movements-table">
-                <thead class="table-dark">
+<div class="tools-grid-wrapper">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle movements-table tools-grid">
+            <thead>
                     <tr>
-                        <th>Data</th>
-                        <th>Ferramenta</th>
+                        <th class="sortable" data-sort-type="string" data-col="0">Data <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                        <th class="sortable" data-sort-type="string" data-col="1">Ferramenta <i class="bi bi-arrow-down-up sort-icon"></i></th>
                         {% if category == 'EMPRESTIMO' %}
-                            <th>Funcionário</th>
+                            <th class="sortable" data-sort-type="string" data-col="2">Funcionário <i class="bi bi-arrow-down-up sort-icon"></i></th>
                         {% else %}
-                            <th>Máquina</th>
+                            <th class="sortable" data-sort-type="string" data-col="2">Máquina <i class="bi bi-arrow-down-up sort-icon"></i></th>
                         {% endif %}
-                        <th class="text-center">Tipo</th>
-                        <th class="text-center">Qtd.</th>
-                        <th class="text-end col-cost">Custo Unit.</th>
-                        <th class="text-end col-cost">Custo Total</th>
+                        <th class="sortable text-center" data-sort-type="string" data-col="3">Tipo <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                        <th class="sortable text-center" data-sort-type="number" data-col="4">Qtd. <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                        <th class="sortable text-end col-cost" data-sort-type="number" data-col="5">Custo Unit. <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                        <th class="sortable text-end col-cost" data-sort-type="number" data-col="6">Custo Total <i class="bi bi-arrow-down-up sort-icon"></i></th>
                         {% if category == 'EMPRESTIMO' %}
-                            <th class="text-center">Status</th>
-                            <th>Devolução</th>
+                            <th class="sortable text-center" data-sort-type="string" data-col="7">Status <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-sort-type="string" data-col="8">Devolução <i class="bi bi-arrow-down-up sort-icon"></i></th>
                             <th class="text-center">Ação</th>
                         {% endif %}
                         <th>Obs.</th>
@@ -171,9 +194,81 @@
                         </td>
                     </tr>
                 {% endif %}
-                </tbody>
-            </table>
-        </div>
+            </tbody>
+        </table>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ====== Sortable Table ======
+(function() {
+    const table = document.querySelector('table.movements-table');
+    if (!table) return;
+    const headers = table.querySelectorAll('th.sortable');
+    const tbody = table.querySelector('tbody');
+
+    headers.forEach(function(th) {
+        th.addEventListener('click', function() {
+            const col = parseInt(th.dataset.col);
+            const type = th.dataset.sortType;
+            const icon = th.querySelector('.sort-icon');
+            let dir = 'asc';
+
+            if (th.classList.contains('asc')) {
+                dir = 'desc';
+            }
+
+            headers.forEach(function(h) {
+                h.classList.remove('asc', 'desc');
+                const ic = h.querySelector('.sort-icon');
+                ic.className = 'bi bi-arrow-down-up sort-icon';
+            });
+
+            th.classList.add(dir);
+            icon.className = dir === 'asc'
+                ? 'bi bi-arrow-up sort-icon'
+                : 'bi bi-arrow-down sort-icon';
+
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            rows.sort(function(a, b) {
+                const cellA = a.children[col];
+                const cellB = b.children[col];
+                if (!cellA || !cellB) return 0;
+                let valA = (cellA.textContent || '').trim();
+                let valB = (cellB.textContent || '').trim();
+
+                if (type === 'number') {
+                    valA = parseFloat(valA.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
+                    valB = parseFloat(valB.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
+                    return dir === 'asc' ? valA - valB : valB - valA;
+                }
+                valA = valA.toLowerCase();
+                valB = valB.toLowerCase();
+                if (valA < valB) return dir === 'asc' ? -1 : 1;
+                if (valA > valB) return dir === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            rows.forEach(function(row) { tbody.appendChild(row); });
+        });
+    });
+})();
+
+// ====== Column Selector for Search ======
+(function() {
+    const menu = document.getElementById('mvSearchColMenu');
+    const hiddenInput = document.getElementById('mvSearchColInput');
+    const label = document.getElementById('mvSearchColLabel');
+    if (!menu) return;
+    menu.querySelectorAll('.dropdown-item[data-col]').forEach(function(item) {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            hiddenInput.value = item.dataset.col;
+            label.textContent = item.textContent.trim();
+        });
+    });
+})();
+</script>
 {% endblock %}

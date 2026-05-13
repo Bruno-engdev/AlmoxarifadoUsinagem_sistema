@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Etiquetas – Estoque de Ferramentas</title>
+    <style>
+        /* ---- Reset & base ---- */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            color: #000;
+            background: #fff;
+        }
+
+        /* ---- A4 page setup for print ---- */
+        @page {
+            size: A4 portrait;
+            margin: 10mm;
+        }
+
+        /* ---- Page sheet: one per printed page ---- */
+        .page-sheet {
+            width: 190mm;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-auto-rows: 21mm;
+            gap: 0mm;
+        }
+        .page-sheet + .page-sheet {
+            margin-top: 8mm;
+        }
+
+        /* ---- Label cell: compact ---- */
+        .label-cell {
+            border: 1.5pt solid #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5mm;
+            overflow: hidden;
+        }
+
+        .label-origin-id {
+            font-size: 8pt;
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.15;
+            margin-bottom: 0.5mm;
+            word-break: break-word;
+        }
+
+        .label-name {
+            font-size: 7pt;
+            font-weight: 400;
+            text-align: center;
+            line-height: 1.2;
+            word-break: break-word;
+        }
+
+        .label-origin-id.empty {
+            color: #999;
+        }
+
+        /* ---- Screen-only header ---- */
+        .screen-header {
+            text-align: center;
+            padding: 12px 0 8px;
+            font-size: 14px;
+            color: #555;
+        }
+        .screen-header kbd {
+            background: #eee;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 1px 6px;
+            font-size: 12px;
+        }
+
+        /* ---- Empty state ---- */
+        .no-labels {
+            text-align: center;
+            padding: 40px 20px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* ---- Print-specific rules ---- */
+        @media print {
+            .screen-header { display: none; }
+            body { margin: 0; padding: 0; }
+
+            .page-sheet {
+                width: 100%;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            .page-sheet + .page-sheet {
+                margin-top: 0;
+                page-break-before: always;
+                break-before: page;
+            }
+            .label-cell {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+        }
+
+        /* ---- Screen preview ---- */
+        @media screen {
+            body { background: #f0f0f0; padding: 20px 0; }
+            .page-sheet {
+                background: #fff;
+                padding: 10mm;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="screen-header">
+        Etiquetas prontas para impressão &mdash; use <kbd>Ctrl + P</kbd> para imprimir
+    </div>
+
+    {% if pages %}
+        {% for page in pages %}
+        <div class="page-sheet">
+            {% for item in page %}
+            <div class="label-cell">
+                <div class="label-origin-id{% if not item.origin_id %} empty{% endif %}">
+                    {{ item.origin_id if item.origin_id else "—" }}
+                </div>
+                <div class="label-name">{{ item.name }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="no-labels">
+        Nenhuma ferramenta encontrada com os filtros atuais.
+    </div>
+    {% endif %}
+</body>
+</html>

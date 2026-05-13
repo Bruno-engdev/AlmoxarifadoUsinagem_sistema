@@ -119,9 +119,9 @@ def dashboard(
     tool_types = db.query(ToolType).order_by(ToolType.name).all()
 
     return request.app.state.templates.TemplateResponse(
-        "dashboard.html",
-        {
-            "request": request,
+        request=request,
+        name="dashboard.html",
+        context={
             "active_page": "dashboard",
             # KPIs
             "total_tools": total_tools,
