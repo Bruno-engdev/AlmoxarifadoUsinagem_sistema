@@ -4,7 +4,7 @@ Tools router – CRUD, stock add/remove, search, tool registration, XLSX export.
 
 from io import BytesIO
 from datetime import datetime
-from fastapi import APIRouter, Request, Depends, Form, Query
+from fastapi import APIRouter, Request, Depends, Form, Query, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/tools", tags=["tools"], dependencies=[Depends(requir
 
 def _filtered_tools_query(db: Session, search: str, search_col: str):
     """Build a filtered query for tools. Shared by listing and export."""
-    query = db.query(Tool).join(ToolType)
+    query = db.query(Tool).join(ToolType).filter(Tool.is_critical != -1)
 
     if search:
         like = f"%{search}%"
@@ -178,7 +178,7 @@ def print_labels(
 ):
     """Render a printable A4 page with labels (4×13 grid) for filtered tools."""
     tools = _filtered_tools_query(db, search, search_col).all()
-    labels = [{"origin_id": t.origin_id or "", "name": t.name} for t in tools]
+    labels = [{"origin_id": t.origin_id or "", "name": t.name, "location": t.location or ""} for t in tools]
 
     # Chunk into pages of 52 labels (4 cols × 13 rows)
     per_page = 52
@@ -188,6 +188,32 @@ def print_labels(
         request=request,
         name="tools/labels_print.html",
         context={"pages": pages, "labels": labels},
+    )
+
+
+@router.get("/print/movement-form")
+def print_movement_form(request: Request):
+    """Render a printable offline movement form for use during system downtime."""
+    return request.app.state.templates.TemplateResponse(
+        request=request,
+        name="tools/movement_form_print.html",
+        context={
+            "generated_on": datetime.now().strftime("%d/%m/%Y"),
+            "rows": list(range(1, 12)),
+        },
+    )
+
+
+@router.get("/print/loan-form")
+def print_loan_form(request: Request):
+    """Render a printable loan form for manual tool check-out and return."""
+    return request.app.state.templates.TemplateResponse(
+        request=request,
+        name="tools/loan_form_print.html",
+        context={
+            "generated_on": datetime.now().strftime("%d/%m/%Y"),
+            "rows": list(range(1, 12)),
+        },
     )
 
 
@@ -277,6 +303,25 @@ async def tool_movement(
     if not redirect_to.startswith("/"):
         redirect_to = "/tools"
     return RedirectResponse(url=redirect_to, status_code=303)
+
+
+@router.get("/{tool_id}/modal")
+def tool_detail_modal(
+    tool_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Ferramenta não encontrada")
+
+    return request.app.state.templates.TemplateResponse(
+        request=request,
+        name="tools/detail_modal_content.html",
+        context={
+            "tool": tool,
+        },
+    )
 
 
 @router.get("/{tool_id}")

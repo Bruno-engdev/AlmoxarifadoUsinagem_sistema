@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulário de Movimentação Offline</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #111;
+            background: #f3f4f6;
+        }
+
+        @page {
+            size: A4 portrait;
+            margin: 10mm;
+        }
+
+        .screen-header {
+            text-align: center;
+            padding: 14px 0 10px;
+            font-size: 14px;
+            color: #4b5563;
+        }
+
+        .screen-header kbd {
+            background: #e5e7eb;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-size: 12px;
+        }
+
+        .sheet {
+            width: 190mm;
+            min-height: 277mm;
+            margin: 0 auto 18px;
+            padding: 8mm;
+            background: #fff;
+            border: 1px solid #111;
+        }
+
+        .sheet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8mm;
+            margin-bottom: 5mm;
+            padding-bottom: 4mm;
+            border-bottom: 1.5px solid #111;
+        }
+
+        .title-block h1 {
+            margin: 0 0 2mm;
+            font-size: 18pt;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        .title-block p {
+            margin: 0;
+            font-size: 9pt;
+            line-height: 1.35;
+        }
+
+        .meta-block {
+            min-width: 44mm;
+            border: 1px solid #111;
+            padding: 1mm;
+            font-size: 8.5pt;
+            line-height: 1.45;
+        }
+
+        .meta-block strong {
+            display: inline-block;
+            min-width: 21mm;
+        }
+
+        .section {
+            margin-bottom: 4mm;
+        }
+
+        .section-title {
+            margin: 0 0 2mm;
+            font-size: 8.5pt;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .field-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 3mm 4mm;
+        }
+
+        .field-box {
+            min-height: 14mm;
+            border: 1px solid #111;
+            padding: 2.2mm 2.4mm;
+        }
+
+        .field-label {
+            display: block;
+            margin-bottom: 1.6mm;
+            font-size: 7.4pt;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .field-line {
+            height: 6mm;
+            border-bottom: 1px solid #111;
+        }
+
+        .option-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3mm 5mm;
+            min-height: 6mm;
+            align-items: center;
+        }
+
+        .option-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 2mm;
+            font-size: 9pt;
+        }
+
+        .check-box {
+            width: 4.2mm;
+            height: 4.2mm;
+            border: 1px solid #111;
+            display: inline-block;
+        }
+
+        .movement-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 8.2pt;
+        }
+
+        .movement-table th,
+        .movement-table td {
+            border: 1px solid #111;
+            padding: 1.8mm 1.6mm;
+            vertical-align: top;
+        }
+
+        .movement-table th {
+            font-size: 7.2pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            text-align: left;
+            background: #f3f4f6;
+        }
+
+        .movement-table td {
+            height: 11mm;
+        }
+
+        .movement-table .col-n {
+            width: 7%;
+            text-align: center;
+        }
+
+        .movement-table .col-code {
+            width: 16%;
+        }
+
+        .movement-table .col-tool {
+            width: 24%;
+        }
+
+        .movement-table .col-qty {
+            width: 8%;
+        }
+
+        .movement-table .col-owner {
+            width: 16%;
+        }
+
+        .notes-box {
+            min-height: 18mm;
+            border: 1px solid #111;
+            padding: 2.2mm 2.4mm;
+        }
+
+        .system-entry {
+            margin-top: 4mm;
+            padding: 3mm;
+            border: 1px dashed #111;
+            font-size: 8.7pt;
+        }
+
+        .system-entry strong {
+            font-size: 8pt;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        @media screen {
+            body { padding: 18px 0; }
+            .sheet { box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12); }
+        }
+
+        @media print {
+            .screen-header { display: none; }
+            body { background: #fff; padding: 0; }
+            .sheet {
+                margin: 0;
+                border: 1px solid #111;
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="screen-header">
+        Formulário offline pronto para impressão. Use <kbd>Ctrl + P</kbd> para imprimir uma folha.
+    </div>
+
+    <div class="sheet">
+        <header class="sheet-header">
+            <div class="title-block">
+                <h1>Formulário de Movimentação Offline</h1>
+                <p>Utilize esta folha quando o sistema estiver indisponível. Após o retorno do sistema, lance manualmente as movimentações registradas abaixo.</p>
+            </div>
+            <div class="meta-block">
+                <div><strong>Impresso em:</strong> {{ generated_on }}</div>
+                <div><strong>Setor:</strong> Usinagem </div>
+                <div><strong>Folha:</strong> ____ / ____</div>
+            </div>
+        </header>
+
+        <section class="section">
+            <h2 class="section-title">Dados gerais</h2>
+            <div class="field-grid">
+                <div class="field-box">
+                    <span class="field-label">Responsável pelo preenchimento</span>
+                    <div class="field-line"></div>
+                </div>
+                <div class="field-box">
+                    <span class="field-label">Tipo da movimentação</span>
+                    <div class="option-row">
+                        <span class="option-pill"><span class="check-box"></span>Saída / retirada</span>
+                        <span class="option-pill"><span class="check-box"></span>Reposição</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Itens movimentados</h2>
+            <table class="movement-table">
+                <thead>
+                    <tr>
+                        <th class="col-n">#</th>
+                        <th class="col-code">ID TOTVS / Código</th>
+                        <th class="col-tool">Ferramenta</th>
+                        <th class="col-qty">Qtd.</th>
+                        <th class="col-owner">Funcionário / Máquina</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td class="col-n">{{ row }}</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Observações gerais</h2>
+            <div class="notes-box"></div>
+        </section>
+
+
+        <section class="system-entry">
+            <strong>Lançamento posterior no sistema</strong><br>
+            Data: ____ / ____ / ______ &nbsp;&nbsp; Hora: ____ : ____ &nbsp;&nbsp; Responsável pelo lançamento: ______________________________________________
+        </section>
+    </div>
+</body>
+</html>

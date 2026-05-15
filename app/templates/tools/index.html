@@ -49,8 +49,10 @@
             </button>
         </div>
         <div class="tools-toolbar-right">
-            <form method="GET" action="/tools" class="tools-search-form" id="searchForm">
+            <form method="GET" action="/tools" class="tools-search-form movements-search-form" id="searchForm">
+                <span class="movements-toolbar-label">Busca no estoque</span>
                 <div class="input-group input-group-sm">
+                    <span class="input-group-text tools-search-icon"><i class="bi bi-search"></i></span>
                     <input type="text" name="search" class="form-control form-control-sm" id="searchInput"
                            placeholder="Buscar por nome ou tipo..." value="{{ search }}">
                     <input type="hidden" name="search_col" id="searchColInput" value="{{ search_col or 'all' }}">
@@ -124,7 +126,10 @@
                         <td>{{ t.id }}</td>
                         <td>{{ t.origin_id or "—" }}</td>
                         <td>
-                            <a href="/tools/{{ t.id }}{% if search %}?ref={{ search|urlencode }}{% if search_col and search_col != 'all' %}&ref_col={{ search_col|urlencode }}{% endif %}{% endif %}" class="text-decoration-none fw-semibold">
+                            <a href="/tools/{{ t.id }}{% if search %}?ref={{ search|urlencode }}{% if search_col and search_col != 'all' %}&ref_col={{ search_col|urlencode }}{% endif %}{% endif %}"
+                               class="text-decoration-none fw-semibold tool-detail-trigger"
+                               data-tool-name="{{ t.name }}"
+                               data-modal-url="/tools/{{ t.id }}/modal">
                                 {{ t.name }}
                             </a>
                         </td>
@@ -203,6 +208,29 @@
     </div>
 </div>
 
+<div class="modal fade" id="toolQuickViewModal" tabindex="-1" aria-labelledby="toolQuickViewTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="toolQuickViewTitle">Detalhes da ferramenta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body" id="toolQuickViewBody">
+                <div class="text-center text-muted py-4">
+                    <div class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></div>
+                    Carregando detalhes...
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a id="toolQuickViewFullLink" href="#" class="btn btn-outline-secondary">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>Abrir tela completa
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ====== Export Modal (sidebar layout) ====== -->
 <div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -217,11 +245,17 @@
                 <div class="export-modal-layout">
                     <!-- Sidebar -->
                     <div class="export-sidebar">
-                        <button type="button" class="export-sidebar-item active" data-panel="browse">
+                        <button type="button" class="export-sidebar-item active" data-panel-target="panelBrowse">
                             <i class="bi bi-file-earmark-spreadsheet me-2"></i>Imprimir Browse
                         </button>
-                        <button type="button" class="export-sidebar-item" data-panel="labels">
+                        <button type="button" class="export-sidebar-item" data-panel-target="panelLabels">
                             <i class="bi bi-tag me-2"></i>Gerar Etiqueta
+                        </button>
+                        <button type="button" class="export-sidebar-item" data-panel-target="panelMovementForm">
+                            <i class="bi bi-file-earmark-text me-2"></i>Formulário de movimentação
+                        </button>
+                        <button type="button" class="export-sidebar-item" data-panel-target="panelLoanForm">
+                            <i class="bi bi-journal-text me-2"></i>Formulário de empréstimo
                         </button>
                     </div>
                     <!-- Panels -->
@@ -294,7 +328,7 @@
                                 <i class="bi bi-info-circle me-1"></i>
                                 Gera uma página de etiquetas para impressão em folha A4 (4 colunas × 13 linhas por folha).
                                 Os filtros atuais do browse serão respeitados.
-                                Cada etiqueta contém o <strong>ID TOTVS</strong> e o <strong>Nome da Ferramenta</strong>.
+                                Cada etiqueta contém a <strong>Localização</strong>, o <strong>ID TOTVS</strong> e o <strong>Nome da Ferramenta</strong>.
                                 Utiliza quantas folhas forem necessárias.
                             </p>
                             <p class="mb-3" style="font-size: 0.82rem; color: var(--text-secondary);">
@@ -304,6 +338,39 @@
                             <div class="text-end">
                                 <a id="labelsPrintLink" href="/tools/print/labels" target="_blank" class="btn btn-primary">
                                     <i class="bi bi-printer me-1"></i>Abrir Página de Impressão
+                                </a>
+                            </div>
+                        </div>
+                        <!-- Panel: Formulário de movimentação -->
+                        <div class="export-panel" id="panelMovementForm">
+                            <p class="text-muted mb-3" style="font-size: 0.82rem;">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Gera uma folha A4 com formulário de movimentação manual para uso quando o sistema estiver offline.
+                                O formulário traz campos para retirada, devolução e reposição, além de espaço para registrar várias ferramentas na mesma folha.
+                            </p>
+                            <p class="mb-3" style="font-size: 0.82rem; color: var(--text-secondary);">
+                                <i class="bi bi-printer me-1"></i>
+                                Após abrir a página, use <kbd>Ctrl + P</kbd> para imprimir e deixe folhas em branco disponíveis no almoxarifado.
+                            </p>
+                            <div class="text-end">
+                                <a href="/tools/print/movement-form" target="_blank" class="btn btn-primary">
+                                    <i class="bi bi-printer me-1"></i>Abrir Formulário
+                                </a>
+                            </div>
+                        </div>
+                        <div class="export-panel" id="panelLoanForm">
+                            <p class="text-muted mb-3" style="font-size: 0.82rem;">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Gera uma folha A4 para controle manual de empréstimos, com campos para retirada e devolução da ferramenta.
+                                A tabela traz data e hora de cada etapa, além de assinatura do funcionário na retirada e na devolução.
+                            </p>
+                            <p class="mb-3" style="font-size: 0.82rem; color: var(--text-secondary);">
+                                <i class="bi bi-printer me-1"></i>
+                                Após abrir a página, use <kbd>Ctrl + P</kbd> para imprimir e manter folhas prontas para uso manual.
+                            </p>
+                            <div class="text-end">
+                                <a href="/tools/print/loan-form" target="_blank" class="btn btn-primary">
+                                    <i class="bi bi-printer me-1"></i>Abrir Formulário
                                 </a>
                             </div>
                         </div>
@@ -437,6 +504,77 @@
     });
 })();
 
+(function() {
+    var modalEl = document.getElementById('toolQuickViewModal');
+    if (!modalEl) return;
+
+    var modalBody = document.getElementById('toolQuickViewBody');
+    var modalTitle = document.getElementById('toolQuickViewTitle');
+    var fullLink = document.getElementById('toolQuickViewFullLink');
+    var toolLinks = document.querySelectorAll('.tool-detail-trigger');
+    var loadingHtml = [
+        '<div class="text-center text-muted py-4">',
+        '  <div class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></div>',
+        '  Carregando detalhes...',
+        '</div>'
+    ].join('');
+    var errorHtml = [
+        '<div class="text-center py-4">',
+        '  <i class="bi bi-exclamation-circle text-danger d-block mb-2" style="font-size: 1.4rem;"></i>',
+        '  <div class="text-danger fw-semibold">Nao foi possivel carregar os detalhes.</div>',
+        '  <div class="text-muted small">Tente novamente ou abra a tela completa.</div>',
+        '</div>'
+    ].join('');
+    var requestToken = 0;
+
+    toolLinks.forEach(function(link) {
+        link.addEventListener('click', function(event) {
+            if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                return;
+            }
+
+            event.preventDefault();
+
+            var modalUrl = link.dataset.modalUrl;
+            var detailUrl = link.getAttribute('href');
+            var toolName = link.dataset.toolName || 'Detalhes da ferramenta';
+            var currentToken = ++requestToken;
+
+            modalTitle.textContent = toolName;
+            modalBody.innerHTML = loadingHtml;
+            fullLink.href = detailUrl;
+
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+
+            fetch(modalUrl, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('load-failed');
+                    }
+                    return response.text();
+                })
+                .then(function(html) {
+                    if (currentToken !== requestToken) return;
+                    modalBody.innerHTML = html;
+                })
+                .catch(function() {
+                    if (currentToken !== requestToken) return;
+                    modalBody.innerHTML = errorHtml;
+                });
+        });
+    });
+
+    modalEl.addEventListener('hidden.bs.modal', function() {
+        modalTitle.textContent = 'Detalhes da ferramenta';
+        modalBody.innerHTML = '';
+        fullLink.href = '#';
+    });
+})();
+
 // ====== Export Modal – sidebar navigation + column selection ======
 (function() {
     var exportModalEl = document.getElementById('exportModal');
@@ -448,12 +586,13 @@
 
     sidebarItems.forEach(function(item) {
         item.addEventListener('click', function() {
-            var target = item.dataset.panel;
+            var panelId = item.dataset.panelTarget;
+            if (!panelId) return;
             sidebarItems.forEach(function(si) { si.classList.remove('active'); });
             panels.forEach(function(p) { p.classList.remove('active'); });
             item.classList.add('active');
-            var panelId = target === 'browse' ? 'panelBrowse' : 'panelLabels';
-            document.getElementById(panelId).classList.add('active');
+            var targetPanel = document.getElementById(panelId);
+            if (targetPanel) targetPanel.classList.add('active');
         });
     });
 
@@ -509,8 +648,12 @@
         // Reset to first panel
         sidebarItems.forEach(function(si) { si.classList.remove('active'); });
         panels.forEach(function(p) { p.classList.remove('active'); });
-        sidebarItems[0].classList.add('active');
-        panels[0].classList.add('active');
+        if (sidebarItems[0]) {
+            sidebarItems[0].classList.add('active');
+            var firstPanelId = sidebarItems[0].dataset.panelTarget;
+            var firstPanel = firstPanelId ? document.getElementById(firstPanelId) : null;
+            if (firstPanel) firstPanel.classList.add('active');
+        }
         // Reset checkboxes
         getCheckboxes().forEach(function(cb) { cb.checked = true; });
         updateState();
@@ -575,5 +718,6 @@ function prepareMovement(toolId, toolName, type, category) {
         costInput.required = false;
     }
 }
+
 </script>
 {% endblock %}

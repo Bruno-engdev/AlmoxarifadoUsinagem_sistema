@@ -25,7 +25,7 @@
             margin: 0 auto;
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            grid-auto-rows: 21mm;
+            grid-auto-rows: 26mm;
             gap: 0mm;
         }
         .page-sheet + .page-sheet {
@@ -39,21 +39,36 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 1.5mm;
+            padding: 2mm;
+            gap: 2.5mm;
             overflow: hidden;
         }
 
+        .label-location {
+            font-size: 12pt;
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.1;
+            color: #333;
+            letter-spacing: 0.03em;
+            word-break: break-word;
+        }
+
+        .label-location.empty {
+            color: #bbb;
+            font-weight: 400;
+        }
+
         .label-origin-id {
-            font-size: 8pt;
+            font-size: 11pt;
             font-weight: 700;
             text-align: center;
             line-height: 1.15;
-            margin-bottom: 0.5mm;
             word-break: break-word;
         }
 
         .label-name {
-            font-size: 7pt;
+            font-size: 9pt;
             font-weight: 400;
             text-align: center;
             line-height: 1.2;
@@ -130,6 +145,9 @@
         <div class="page-sheet">
             {% for item in page %}
             <div class="label-cell">
+                <div class="label-location{% if not item.location %} empty{% endif %}">
+                    {{ item.location if item.location else "—" }}
+                </div>
                 <div class="label-origin-id{% if not item.origin_id %} empty{% endif %}">
                     {{ item.origin_id if item.origin_id else "—" }}
                 </div>
