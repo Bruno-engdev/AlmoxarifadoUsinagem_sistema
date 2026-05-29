@@ -315,11 +315,14 @@ def tool_detail_modal(
     if not tool:
         raise HTTPException(status_code=404, detail="Ferramenta não encontrada")
 
+    tool_types = db.query(ToolType).order_by(ToolType.name).all()
+
     return request.app.state.templates.TemplateResponse(
         request=request,
         name="tools/detail_modal_content.html",
         context={
             "tool": tool,
+            "tool_types": tool_types,
         },
     )
 
@@ -388,7 +391,7 @@ async def tool_edit(tool_id: int, request: Request, db: Session = Depends(get_db
             db.add(ToolParameter(tool_id=tool.id, parameter_name=pn.strip(), parameter_value=pv.strip()))
 
     db.commit()
-    return RedirectResponse(url=f"/tools/{tool_id}", status_code=303)
+    return RedirectResponse(url="/tools", status_code=303)
 
 
 @router.post("/{tool_id}/delete")

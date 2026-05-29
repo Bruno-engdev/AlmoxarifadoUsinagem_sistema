@@ -6,13 +6,21 @@
             <small class="text-muted">{{ tool.origin_id }}</small>
             {% endif %}
         </div>
-        {% if tool.status == "CRITICAL" %}
-            <span class="badge bg-danger fs-6">CRÍTICO</span>
-        {% elif tool.status == "LOW STOCK" %}
-            <span class="badge bg-warning text-dark fs-6">ESTOQUE BAIXO</span>
-        {% else %}
-            <span class="badge bg-success fs-6">OK</span>
-        {% endif %}
+        <div class="d-flex align-items-center gap-2">
+            {% if tool.status == "CRITICAL" %}
+                <span class="badge bg-danger fs-6">CRÍTICO</span>
+            {% elif tool.status == "LOW STOCK" %}
+                <span class="badge bg-warning text-dark fs-6">ESTOQUE BAIXO</span>
+            {% else %}
+                <span class="badge bg-success fs-6">OK</span>
+            {% endif %}
+            <button type="button" class="btn btn-sm btn-outline-primary tool-edit-trigger">
+                <i class="bi bi-pencil-square me-1"></i>Editar
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger tool-delete-trigger">
+                <i class="bi bi-trash me-1"></i>Excluir
+            </button>
+        </div>
     </div>
     <div class="card-body">
         <div class="row g-3 mb-3">
@@ -85,6 +93,8 @@
         <a href="/movements?tool_id={{ tool.id }}" class="btn btn-sm btn-outline-secondary">
             Ver todas
         </a>
+        
+
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -138,4 +148,3 @@
             </table>
         </div>
     </div>
-</div>

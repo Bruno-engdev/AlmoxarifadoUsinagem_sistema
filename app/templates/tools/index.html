@@ -116,7 +116,8 @@
                         <th class="sortable text-center" data-sort-type="number" data-col="5">Mín. <i class="bi bi-arrow-down-up sort-icon"></i></th>
                         <th class="sortable text-center" data-sort-type="number" data-col="6">Máx. <i class="bi bi-arrow-down-up sort-icon"></i></th>
                         <th class="sortable text-center" data-sort-type="number" data-col="7">Estoque <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        <th class="sortable text-center" data-sort-type="string" data-col="8">Status <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                        <th class="sortable text-center" data-sort-type="number" data-col="8">Custo unitário <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                        <th class="sortable text-center" data-sort-type="string" data-col="9">Status <i class="bi bi-arrow-down-up sort-icon"></i></th>
                         <th class="text-center">Ações</th>
                     </tr>
                 </thead>
@@ -137,7 +138,8 @@
                         <td>{{ t.location or "—" }}</td>
                         <td class="text-center">{{ t.min_stock }}</td>
                         <td class="text-center">{{ t.max_stock }}</td>
-                        <td class="text-center fw-bold">{{ t.current_stock }}</td>
+                        <td class="text-center">{{ t.max_stock }}</td>
+                        <td class="text-center fw-bold">{{ t.unit_cost }}</td>
                         <td class="text-center">
                             {% if t.status == "CRITICAL" %}
                                 <span class="badge bg-danger">CRÍTICO</span>
@@ -222,9 +224,6 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <a id="toolQuickViewFullLink" href="#" class="btn btn-outline-secondary">
-                    <i class="bi bi-box-arrow-up-right me-1"></i>Abrir tela completa
-                </a>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
             </div>
         </div>
@@ -510,7 +509,6 @@
 
     var modalBody = document.getElementById('toolQuickViewBody');
     var modalTitle = document.getElementById('toolQuickViewTitle');
-    var fullLink = document.getElementById('toolQuickViewFullLink');
     var toolLinks = document.querySelectorAll('.tool-detail-trigger');
     var loadingHtml = [
         '<div class="text-center text-muted py-4">',
@@ -542,7 +540,6 @@
 
             modalTitle.textContent = toolName;
             modalBody.innerHTML = loadingHtml;
-            fullLink.href = detailUrl;
 
             bootstrap.Modal.getOrCreateInstance(modalEl).show();
 
@@ -559,7 +556,49 @@
                 })
                 .then(function(html) {
                     if (currentToken !== requestToken) return;
-                    modalBody.innerHTML = html;
+
+                    // Remove instâncias antigas dos modais de ação que
+                    // possam estar penduradas no body de aberturas anteriores.
+                    ['editToolModal', 'deleteToolModal'].forEach(function (id) {
+                        var old = document.getElementById(id);
+                        if (old) old.remove();
+                    });
+
+                    // Parseia o HTML retornado pelo backend em um container temporário
+                    var tmp = document.createElement('div');
+                    tmp.innerHTML = html;
+
+                    // 1. Extrai o card de detalhes e injeta no modal-body
+                    var card = tmp.querySelector('[data-tool-detail-card]');
+                    modalBody.innerHTML = '';
+                    if (card) {
+                        while (card.firstChild) modalBody.appendChild(card.firstChild);
+                    } else {
+                        modalBody.innerHTML = html;
+                    }
+
+                    // 2. Move os modais de ação para o <body>, fora do
+                    //    toolQuickViewModal (Bootstrap 5 não suporta modais aninhados).
+                    var modalsContainer = tmp.querySelector('[data-tool-action-modals]');
+                    if (modalsContainer) {
+                        // Separa scripts (innerHTML não os executa, recriação necessária)
+                        var scripts = Array.prototype.slice.call(modalsContainer.querySelectorAll('script'));
+                        scripts.forEach(function (s) { s.remove(); });
+                        // Move os modais (elementos restantes) para o body
+                        while (modalsContainer.firstChild) {
+                            document.body.appendChild(modalsContainer.firstChild);
+                        }
+                        // Recria e executa os scripts
+                        scripts.forEach(function (s) {
+                            var newScript = document.createElement('script');
+                            newScript.textContent = s.textContent;
+                            document.body.appendChild(newScript);
+                            newScript.remove();
+                        });
+                        if (typeof window.toolEditModalInit === 'function') {
+                            window.toolEditModalInit();
+                        }
+                    }
                 })
                 .catch(function() {
                     if (currentToken !== requestToken) return;
@@ -571,7 +610,48 @@
     modalEl.addEventListener('hidden.bs.modal', function() {
         modalTitle.textContent = 'Detalhes da ferramenta';
         modalBody.innerHTML = '';
-        fullLink.href = '#';
+        // Não remove o modal-alvo quando estamos no meio de um swap
+        // (Editar/Excluir disparados de dentro do modal de detalhes).
+        var keep = window.__swappingToModal;
+        ['editToolModal', 'deleteToolModal'].forEach(function(id) {
+            if (id === keep) return;
+            var m = document.getElementById(id);
+            if (m) m.remove();
+        });
+    });
+
+    // ====== Handler global delegado para os triggers Editar/Excluir ======
+    // Definido aqui (estaticamente em index.html) para não depender da execução
+    // do <script> injetado via AJAX dentro do partial _action_modals.html.
+    function swapToModal(targetId) {
+        var target = document.getElementById(targetId);
+        if (!target) return;
+        var openModalEl = document.querySelector('.modal.show');
+        if (openModalEl && openModalEl !== target) {
+            window.__swappingToModal = targetId;
+            var openInst = bootstrap.Modal.getInstance(openModalEl);
+            openModalEl.addEventListener('hidden.bs.modal', function onHidden() {
+                openModalEl.removeEventListener('hidden.bs.modal', onHidden);
+                bootstrap.Modal.getOrCreateInstance(target).show();
+                window.__swappingToModal = null;
+            }, { once: true });
+            if (openInst) openInst.hide();
+        } else {
+            bootstrap.Modal.getOrCreateInstance(target).show();
+        }
+    }
+    document.addEventListener('click', function (e) {
+        var editBtn = e.target.closest('.tool-edit-trigger');
+        if (editBtn) {
+            e.preventDefault();
+            swapToModal('editToolModal');
+            return;
+        }
+        var delBtn = e.target.closest('.tool-delete-trigger');
+        if (delBtn) {
+            e.preventDefault();
+            swapToModal('deleteToolModal');
+        }
     });
 })();
 

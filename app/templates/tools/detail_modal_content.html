@@ -2,4 +2,10 @@
     <span class="text-muted small">Consulta rápida da ferramenta</span>
 </div>
 
-{% include "tools/detail_content.html" %}
+<div data-tool-detail-card>
+    {% include "tools/detail_content.html" %}
+</div>
+
+<div data-tool-action-modals hidden>
+    {% include "tools/_action_modals.html" %}
+</div>
