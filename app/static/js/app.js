@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const navDrawer        = document.getElementById('navDrawer');
     const navDrawerOverlay = document.getElementById('navDrawerOverlay');
 
+
     function openDrawer() {
         navDrawer.classList.add('open');
         navDrawerOverlay.classList.add('open');

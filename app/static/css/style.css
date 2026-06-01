@@ -176,13 +176,62 @@ body {
     left: 50%;
     transform: translateX(-50%);
     pointer-events: none;
-    max-width: 50%;
-    text-align: center;
+    width: min(62%, 760px);
+    max-width: calc(100% - 15rem);
+    text-align: left;
+}
+.topbar-center-content {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.55rem;
+    width: 100%;
+    min-width: 0;
+    pointer-events: auto;
+}
+.topbar-local-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-right: 0.15rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.topbar-local-link,
+.topbar-local-link:visited,
+.topbar-local-link:hover,
+.topbar-local-link:focus,
+.topbar-local-link:active {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid rgba(183, 195, 216, 0.10);
+    background: rgba(32, 43, 64, 0.78);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none !important;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.topbar-local-link:hover,
+.topbar-local-link:focus-visible {
+    background-color: rgba(32, 43, 64, 0.78);
+    border-color: rgba(183, 195, 216, 0.10);
+    color: var(--text-primary);
+    outline: none;
+}
+.topbar-local-link.active {
+    background-color: rgba(98, 165, 248, 0.18);
+    border-color: rgba(98, 165, 248, 0.34);
+    color: var(--text-primary);
 }
 .topbar-page-title {
     font-size: 1.05rem;
     font-weight: 700;
     color: var(--text-primary);
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -396,6 +445,24 @@ body {
     :root {
         --content-inline-padding: 1.25rem;
     }
+    .topbar-center {
+        width: min(70%, 620px);
+    }
+
+    .topbar-center-content {
+        gap: 0.55rem;
+    }
+
+    .topbar-local-nav {
+        gap: 0.28rem;
+        margin-right: 0.1rem;
+    }
+
+    .topbar-local-link {
+        padding: 0.22rem 0.52rem;
+        font-size: 0.69rem;
+    }
+
     .topbar-page-title {
         font-size: 0.95rem;
     }
@@ -2027,6 +2094,10 @@ th.sortable.desc .sort-icon {
     flex: 1 1 360px;
 }
 
+.movements-toolbar-section--period {
+    flex: 0 0 auto;
+}
+
 .movements-toolbar-label {
     font-size: 0.68rem;
     font-weight: 700;
@@ -2044,7 +2115,12 @@ th.sortable.desc .sort-icon {
 }
 
 .movements-tool-select {
-    min-width: min(20rem, 100%);
+    min-width: 9rem;
+}
+
+.financial-filter-name {
+    flex: 0 0 auto;
+    width: 12rem;
 }
 
 .movements-date-input {
@@ -2334,6 +2410,79 @@ th.sortable.desc .sort-icon {
     padding: 0.2rem 0.45rem;
 }
 
+.financial-grid-sort-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: inherit;
+    text-decoration: none;
+}
+
+.financial-grid-sort-link i {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.financial-grid-sort-link:hover,
+.financial-grid-sort-link.is-active {
+    color: var(--text-primary);
+}
+
+.financial-grid-sort-link:hover i,
+.financial-grid-sort-link.is-active i {
+    color: var(--accent-blue);
+}
+
+.financial-grid-controls th {
+    background-color: rgba(18, 27, 44, 0.96) !important;
+    border-top: 1px solid rgba(183, 195, 216, 0.08);
+    vertical-align: middle;
+}
+
+.financial-grid-controls .form-control,
+.financial-grid-controls .form-select {
+    min-height: 2rem;
+    background-color: rgba(32, 43, 64, 0.78);
+    border-color: rgba(183, 195, 216, 0.10);
+    color: var(--text-primary);
+    font-size: 0.76rem;
+}
+
+.financial-grid-controls .form-control:focus,
+.financial-grid-controls .form-select:focus {
+    border-color: rgba(98, 165, 248, 0.26);
+    box-shadow: 0 0 0 1px rgba(98, 165, 248, 0.08);
+}
+
+.financial-grid-controls .btn {
+    white-space: nowrap;
+}
+
+.financial-grid-note {
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.financial-grid-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.financial-grid-metric {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.financial-grid-secondary {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+}
+
 .row-actions-cell {
     width: 1%;
 }
@@ -2549,6 +2698,24 @@ th.sortable.desc .sort-icon {
 }
 
 @media (max-width: 575.98px) {
+    .topbar-center {
+        width: calc(100% - 9.5rem);
+        max-width: calc(100% - 9.5rem);
+    }
+
+    .topbar-center-content {
+        gap: 0.4rem;
+    }
+
+    .topbar-local-nav {
+        margin-right: 0;
+    }
+
+    .topbar-local-link {
+        padding: 0.18rem 0.42rem;
+        font-size: 0.64rem;
+    }
+
     .ops-context-title {
         font-size: 1.02rem;
     }

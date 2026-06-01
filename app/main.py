@@ -18,7 +18,7 @@ from app.auth import (
     _LoginRequired,
     _AdminRequired,
 )
-from app.routers import dashboard, tools, employees, movements_router, tool_types, machines
+from app.routers import dashboard, tools, employees, movements_router, tool_types, machines, financials
 from app.routers import auth as auth_router, admin as admin_router
 from app.routers import notifications as notifications_router
 
@@ -84,6 +84,7 @@ app.add_middleware(
 app.include_router(auth_router.router)
 app.include_router(admin_router.router)
 app.include_router(dashboard.router)
+app.include_router(financials.router)
 app.include_router(tools.router)
 app.include_router(employees.router)
 app.include_router(movements_router.router)

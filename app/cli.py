@@ -47,12 +47,62 @@ def _cmd_scan_alerts() -> int:
     return 0
 
 
+def _cmd_import_price_history(args: argparse.Namespace) -> int:
+    """Importa histórico de preços a partir de planilha/XML do TOTVS."""
+    from pathlib import Path
+    from app.database import SessionLocal
+    from app.services.price_history_xlsx import read_totvs_price_file
+    from app.services.price_history_import import import_price_history
+
+    file_path = Path(args.file)
+    if not file_path.exists():
+        print(f"[cli] import-price-history: arquivo não encontrado: {file_path}")
+        return 2
+
+    print(f"[cli] import-price-history: lendo {file_path}...")
+    try:
+        rows = read_totvs_price_file(file_path, sheet_name=args.sheet)
+    except Exception as exc:
+        print(f"[cli] import-price-history: falha ao ler arquivo: {exc}")
+        return 2
+    print(f"[cli] import-price-history: {len(rows)} linha(s) lida(s).")
+
+    db = SessionLocal()
+    try:
+        result = import_price_history(
+            db, rows,
+            source=args.source,
+            file_name=file_path.name,
+            dry_run=args.dry_run,
+        )
+    finally:
+        db.close()
+
+    print(f"[cli] import-price-history: {result.summary()}")
+    if result.errors and args.verbose:
+        for err in result.errors[:50]:
+            print(f"    - {err}")
+        if len(result.errors) > 50:
+            print(f"    ... (+{len(result.errors) - 50} erros)")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="app.cli")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("seed", help="Seed default tool types, machines and admin user")
     sub.add_parser("init-sqlite", help="Create tables via SQLAlchemy (SQLite fallback)")
     sub.add_parser("scan-alerts", help="Rebuild missing stock alerts")
+
+    p_imp = sub.add_parser(
+        "import-price-history",
+        help="Importa histórico de preços do TOTVS (xlsx ou XML Spreadsheet 2003)",
+    )
+    p_imp.add_argument("--file", required=True, help="Caminho do arquivo TOTVS (.xlsx ou .xml)")
+    p_imp.add_argument("--sheet", default=None, help="Nome da planilha (opcional)")
+    p_imp.add_argument("--source", default="TOTVS", help="Rótulo de origem (default: TOTVS)")
+    p_imp.add_argument("--dry-run", action="store_true", help="Não persiste no banco")
+    p_imp.add_argument("--verbose", action="store_true", help="Lista erros de parsing")
 
     args = parser.parse_args(argv)
     if args.command == "seed":
@@ -61,6 +111,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_init_sqlite()
     if args.command == "scan-alerts":
         return _cmd_scan_alerts()
+    if args.command == "import-price-history":
+        return _cmd_import_price_history(args)
     parser.error(f"unknown command: {args.command}")
     return 2
 

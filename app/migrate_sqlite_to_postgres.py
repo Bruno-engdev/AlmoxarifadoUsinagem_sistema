@@ -39,6 +39,7 @@ TABLE_ORDER: list[str] = [
     "tool_parameters",
     "movements",
     "tool_stock_alerts",
+    "tool_price_history",
 ]
 
 

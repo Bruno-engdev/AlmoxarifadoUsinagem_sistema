@@ -31,7 +31,10 @@
     </div>
 
     <div class="topbar-center">
-        <span class="topbar-page-title">{% block topbar_title %}{% endblock %}</span>
+        <div class="topbar-center-content">
+            {% block topbar_nav %}{% endblock %}
+            <span class="topbar-page-title">{% block topbar_title %}{% endblock %}</span>
+        </div>
     </div>
 
     <div class="topbar-right">
@@ -106,6 +109,9 @@
         </a>
         <a href="/movements" class="nav-drawer-link {% if active_page == 'movements' %}active{% endif %}">
             <i class="bi bi-arrow-left-right"></i> Movimentações
+        </a>
+        <a href="/financials" class="nav-drawer-link {% if active_page == 'financials' %}active{% endif %}">
+            <i class="bi bi-cash-coin"></i> Financeiro
         </a>
     </nav>
 </div>

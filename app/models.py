@@ -4,8 +4,8 @@ SQLAlchemy ORM models for the Tool Crib system.
 
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, Text, Float,
-    ForeignKey, DateTime, Enum as SAEnum,
+    Column, Integer, String, Text, Float, Boolean, Numeric, Date,
+    ForeignKey, DateTime, Enum as SAEnum, UniqueConstraint, Index,
 )
 from sqlalchemy.orm import relationship
 import enum
@@ -199,3 +199,62 @@ class ToolStockAlert(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     tool = relationship("Tool")
+
+
+class ToolPriceHistory(Base):
+    """
+    Histórico de preços importado do TOTVS (planilha/XML de compras).
+
+    Cada linha representa um registro do TOTVS para uma ferramenta cadastrada
+    (match por origin_id). O registro mais recente de cada ferramenta tem
+    is_latest=True e seu preco_unitario é replicado em latest_unit_price em
+    todas as linhas da mesma ferramenta, para consulta direta.
+    """
+    __tablename__ = "tool_price_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tool_id = Column(Integer, ForeignKey("tools.id"), nullable=False)
+    origin_id_snapshot = Column(String(100), nullable=False)
+
+    numero_documento = Column(String(50), default="")
+    data_entrega = Column(Date, nullable=True)
+    data_emissao = Column(Date, nullable=True)
+
+    fornecedor_codigo = Column(String(50), default="")
+    fornecedor_nome = Column(String(200), default="")
+
+    tipo = Column(String(20), default="")
+    item = Column(String(20), default="")
+    descricao_totvs = Column(Text, default="")
+    unidade = Column(String(20), default="")
+    segunda_unidade = Column(String(20), default="")
+
+    quantidade = Column(Numeric(15, 4), nullable=True)
+    preco_kg = Column(Numeric(15, 6), nullable=True)
+    preco_unitario = Column(Numeric(15, 6), nullable=False)
+    ultimo_preco = Column(Numeric(15, 6), nullable=True)
+    aliquota_ipi = Column(Numeric(8, 4), nullable=True)
+
+    observacoes = Column(Text, default="")
+    numero_sc = Column(String(50), default="")
+    qtd_entregue = Column(Numeric(15, 4), nullable=True)
+
+    row_hash = Column(String(64), nullable=False)
+    is_latest = Column(Boolean, default=False, nullable=False)
+    latest_unit_price = Column(Numeric(15, 6), nullable=True)
+
+    source = Column(String(50), default="TOTVS")
+    source_file_name = Column(String(500), default="")
+    imported_at = Column(DateTime, default=datetime.utcnow)
+
+    tool = relationship("Tool")
+
+    __table_args__ = (
+        UniqueConstraint("row_hash", name="uq_tool_price_history_row_hash"),
+        Index("ix_tool_price_history_tool_id", "tool_id"),
+        Index("ix_tool_price_history_data_entrega", "data_entrega"),
+        Index("ix_tool_price_history_is_latest", "is_latest"),
+    )
+
+    def __repr__(self):
+        return f"<ToolPriceHistory tool_id={self.tool_id} preco={self.preco_unitario}>"

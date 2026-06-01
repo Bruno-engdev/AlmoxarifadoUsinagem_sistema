@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% set active_page = "financials" %}
+{% set dashboard_url = '/financials' ~ ('?' ~ financial_nav_query if financial_nav_query else '') %}
+{% set table_url = '/financials/table' ~ ('?' ~ financial_nav_query if financial_nav_query else '') %}
+{% set selected_type = namespace(name='Todos os tipos') %}
+{% if f_tool_type_id %}
+    {% for tt in tool_types %}
+        {% if tt.id == f_tool_type_id %}
+            {% set selected_type.name = tt.name %}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
+{% macro sort_th(field, label, align='') -%}
+<th class="{{ align }}">
+    <a href="{{ sort_urls[field] }}" class="financial-grid-sort-link {% if sort_by == field %}is-active{% endif %}">
+        <span>{{ label }}</span>
+        {% if sort_by == field %}
+            <i class="bi {{ 'bi-sort-up' if sort_dir == 'asc' else 'bi-sort-down' }}"></i>
+        {% else %}
+            <i class="bi bi-arrow-down-up"></i>
+        {% endif %}
+    </a>
+</th>
+{%- endmacro %}
+
+{% block title %}Tabela Financeira – Almoxarifado de Ferramentas{% endblock %}
+{% block topbar_nav %}
+<div class="topbar-local-nav" aria-label="Navegação da área financeira">
+    <a href="{{ dashboard_url }}" class="topbar-local-link {% if active_financial_view == 'dashboard' %}active{% endif %}">Dashboard</a>
+    <a href="{{ table_url }}" class="topbar-local-link {% if active_financial_view == 'table' %}active{% endif %}">Tabela financeira</a>
+</div>
+{% endblock %}
+{% block topbar_title %}Visão financeira e custos{% endblock %}
+
+{% block content %}
+<form method="get" action="/financials/table" id="variationBrowseForm" class="d-none">
+    <input type="hidden" name="page" value="1">
+    <input type="hidden" name="per_page" value="{{ pagination.per_page }}">
+    <input type="hidden" name="sort_by" value="{{ sort_by }}">
+    <input type="hidden" name="sort_dir" value="{{ sort_dir }}">
+</form>
+
+<div class="page-subheader page-subheader--stacked">
+    <div class="ops-context-bar">
+        <div class="ops-context-copy">
+            <span class="ops-context-kicker">Financeiro</span>
+            <div class="ops-context-heading">
+                <h1 class="ops-context-title">Tabela financeira de variação de preços</h1>
+            </div>
+            <p class="ops-context-text">
+                Consulta paginada para comparar variação recente de preço, participação no gasto consumido e histórico mais recente de cada ferramenta.
+            </p>
+        </div>
+        <div class="ops-context-meta">
+            <span class="ops-meta-pill">
+                <i class="bi bi-calendar3"></i>{{ window_start }} até {{ window_end }}
+            </span>
+            <span class="ops-meta-pill">
+                <i class="bi bi-tags"></i>{{ selected_type.name }}
+            </span>
+            <span class="ops-meta-pill">
+                <i class="bi bi-table"></i>{{ pagination.total_items }} registro{{ '' if pagination.total_items == 1 else 's' }}
+            </span>
+        </div>
+    </div>
+
+    <div class="movements-toolbar-shell">
+        <div class="movements-toolbar-tier movements-toolbar-tier--context">
+            <div class="movements-toolbar-section movements-toolbar-section--period">
+                <span class="movements-toolbar-label">Escopo financeiro</span>
+                <div class="toolbar-inline-form">
+                    <input form="variationBrowseForm" type="date" name="date_from"
+                           class="form-control form-control-sm movements-date-input" value="{{ f_date_from }}">
+                    <span class="toolbar-separator">até</span>
+                    <input form="variationBrowseForm" type="date" name="date_to"
+                           class="form-control form-control-sm movements-date-input" value="{{ f_date_to }}">
+                    <select form="variationBrowseForm" name="tool_type_id"
+                            class="form-select form-select-sm movements-tool-select">
+                        <option value="0">Todos os tipos</option>
+                        {% for tt in tool_types %}
+                        <option value="{{ tt.id }}" {% if tt.id == f_tool_type_id %}selected{% endif %}>{{ tt.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input form="variationBrowseForm" type="text" name="tool_name"
+                           class="form-control form-control-sm financial-filter-name"
+                           value="{{ f_tool_name }}"
+                           placeholder="Ferramenta ou modelo...">
+                    <button form="variationBrowseForm" type="submit" class="btn btn-sm btn-outline-secondary tools-action-btn flex-shrink-0">
+                        <i class="bi bi-funnel me-1"></i>Aplicar recorte
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ops-feedback-bar">
+        <div class="ops-feedback-summary">
+            <span class="ops-feedback-count">{{ pagination.total_items }} ferramenta{{ '' if pagination.total_items == 1 else 's' }}</span>
+            <span class="ops-feedback-label">Browse financeiro paginado</span>
+        </div>
+        <div class="ops-feedback-chips">
+            {% if f_tool_name %}
+            <span class="filter-chip filter-chip--muted">
+                <i class="bi bi-search"></i>{{ f_tool_name }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="page-grid-fullwidth">
+    <div class="tools-grid-wrapper">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle tools-grid tools-grid--inventory">
+                <thead>
+                    <tr>
+                        {{ sort_th('name', 'Ferramenta') }}
+                        {{ sort_th('tool_type_name', 'Tipo') }}
+                        {{ sort_th('consumed_value', 'Gasto consumido', 'text-end') }}
+                        {{ sort_th('spent_share_pct', '% part.', 'text-end') }}
+                        {{ sort_th('last_price', 'Último preço', 'text-end') }}
+                        {{ sort_th('prev_price', 'Preço anterior', 'text-end') }}
+                        {{ sort_th('var_abs', 'Δ R$', 'text-end') }}
+                        {{ sort_th('var_pct', 'Δ %', 'text-end') }}
+                        {{ sort_th('last_date', 'Última compra', 'text-center') }}
+                    </tr>
+                </thead>
+                <tbody>
+                {% for v in variations %}
+                    <tr>
+                        <td>
+                            <a href="/tools/{{ v.tool_id }}" class="financial-grid-link">{{ v.name }}</a>
+                        </td>
+                        <td>
+                            <span class="financial-grid-secondary">{{ v.tool_type_name }}</span>
+                        </td>
+                        <td class="text-end">
+                            <span class="financial-grid-metric">R$ {{ "%.2f"|format(v.consumed_value) }}</span>
+                        </td>
+                        <td class="text-end">{{ "%.2f"|format(v.spent_share_pct) }}%</td>
+                        <td class="text-end">R$ {{ "%.4f"|format(v.last_price) }}</td>
+                        <td class="text-end text-muted">R$ {{ "%.4f"|format(v.prev_price) }}</td>
+                        <td class="text-end {% if v.var_abs > 0 %}text-danger{% elif v.var_abs < 0 %}text-success{% endif %} fw-bold">
+                            {% if v.var_abs > 0 %}+{% endif %}R$ {{ "%.4f"|format(v.var_abs) }}
+                        </td>
+                        <td class="text-end {% if v.var_pct > 0 %}text-danger{% elif v.var_pct < 0 %}text-success{% endif %}">
+                            {% if v.var_pct > 0 %}+{% endif %}{{ "%.2f"|format(v.var_pct) }}%
+                        </td>
+                        <td class="text-center text-nowrap">{{ v.last_date or '—' }}</td>
+                    </tr>
+                {% endfor %}
+                {% if not variations %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">
+                            Nenhuma ferramenta encontrada para os filtros informados.
+                        </td>
+                    </tr>
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+        {% include "partials/pagination.html" %}
+    </div>
+</div>
+{% endblock %}

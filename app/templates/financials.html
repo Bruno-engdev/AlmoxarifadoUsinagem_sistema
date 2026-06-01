@@ -1,0 +1,673 @@
+{% extends "base.html" %}
+{% set active_page = "financials" %}
+{% set dashboard_url = '/financials' ~ ('?' ~ financial_nav_query if financial_nav_query else '') %}
+{% set financial_table_url = '/financials/table' ~ ('?' ~ financial_nav_query if financial_nav_query else '') %}
+
+{% block title %}Financeiro – Almoxarifado de Ferramentas{% endblock %}
+{% block topbar_nav %}
+<div class="topbar-local-nav" aria-label="Navegação da área financeira">
+    <a href="{{ dashboard_url }}" class="topbar-local-link {% if active_financial_view == 'dashboard' %}active{% endif %}">Dashboard</a>
+    <a href="{{ financial_table_url }}" class="topbar-local-link {% if active_financial_view == 'table' %}active{% endif %}">Tabela financeira</a>
+</div>
+{% endblock %}
+{% block topbar_title %}Visão financeira e custos{% endblock %}
+
+{% block content %}
+{% set selected_type = namespace(name='Todos os tipos') %}
+{% if f_tool_type_id %}
+    {% for tt in tool_types %}
+        {% if tt.id == f_tool_type_id %}
+            {% set selected_type.name = tt.name %}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
+{% set kpis = payload.kpis %}
+{% set impact = payload.impact %}
+
+<section class="dashboard-hero">
+    <div class="dashboard-hero-copy">
+        <span class="dashboard-eyebrow">Custo consumido e preço de compra</span>
+        <h1 class="dashboard-hero-title">Detalhamento financeiro das ferramentas</h1>
+        <p class="dashboard-hero-text">
+            Entenda quem puxou o custo do período, como o preço médio de compra está se comportando e quais ferramentas tiveram maior variação de preço.
+        </p>
+        <div class="dashboard-hero-chips">
+            <span class="dashboard-chip">
+                <i class="bi bi-calendar3"></i>
+                {{ window_start }} até {{ window_end }}
+            </span>
+            <span class="dashboard-chip">
+                <i class="bi bi-calendar2-week"></i>
+                vs. {{ prev_window_start }} até {{ prev_window_end }}
+            </span>
+            <span class="dashboard-chip">
+                <i class="bi bi-tags"></i>{{ selected_type.name }}
+            </span>
+            {% if f_tool_name %}
+            <span class="dashboard-chip">
+                <i class="bi bi-search"></i>{{ f_tool_name }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="dashboard-hero-highlight">
+        <span class="dashboard-highlight-label">Variação vs. período anterior</span>
+        <strong class="dashboard-highlight-value" id="kpi-delta-total-pct">
+            {% if kpis.delta_total_pct > 0 %}+{% endif %}{{ "%.1f"|format(kpis.delta_total_pct) }}%
+        </strong>
+        <span class="dashboard-highlight-support" id="kpi-delta-total-abs">
+            {% if kpis.delta_total >= 0 %}+{% endif %}R$ {{ "%.2f"|format(kpis.delta_total) }} em custo consumido.
+        </span>
+    </div>
+</section>
+
+<section class="dashboard-filter-panel mb-4">
+    <div class="dashboard-filter-header">
+        <div>
+            <span class="dashboard-section-kicker">Filtro analítico</span>
+            <h2 class="dashboard-filter-title">Refine a leitura financeira</h2>
+            <p class="dashboard-section-copy mb-0">
+                Sem datas, o sistema usa os últimos 12 meses e compara com os 12 meses anteriores.
+            </p>
+        </div>
+    </div>
+
+    <form method="get" action="/financials" id="filterForm" class="row g-3 align-items-end">
+        <div class="col-lg col-md-6">
+            <label class="form-label">Data Início</label>
+            <input type="date" class="form-control form-control-sm"
+                   name="date_from" value="{{ f_date_from }}">
+        </div>
+        <div class="col-lg col-md-6">
+            <label class="form-label">Data Fim</label>
+            <input type="date" class="form-control form-control-sm"
+                   name="date_to" value="{{ f_date_to }}">
+        </div>
+        <div class="col-lg col-md-6">
+            <label class="form-label">Tipo de Ferramenta</label>
+            <select class="form-select form-select-sm" name="tool_type_id">
+                <option value="0">Todos</option>
+                {% for tt in tool_types %}
+                <option value="{{ tt.id }}"
+                    {% if tt.id == f_tool_type_id %}selected{% endif %}>{{ tt.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-lg col-md-6">
+            <label class="form-label">Modelo / Nome</label>
+            <input type="text" class="form-control form-control-sm"
+                   name="tool_name" value="{{ f_tool_name }}"
+                   placeholder="Buscar por nome...">
+        </div>
+        <div class="col-12 col-xl-auto d-flex flex-wrap gap-2 dashboard-filter-actions">
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="bi bi-funnel me-1"></i>Filtrar
+            </button>
+            <a href="/financials" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-x-lg me-1"></i>Limpar
+            </a>
+        </div>
+    </form>
+</section>
+
+<!-- ====== KPI ROW ====== -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card dashboard-kpi dashboard-kpi-blue h-100">
+            <div class="card-body">
+                <div class="dashboard-kpi-head">
+                    <div class="kpi-icon kpi-icon-blue"><i class="bi bi-cash-stack"></i></div>
+                    <div class="dashboard-kpi-label">Custo consumido</div>
+                </div>
+                <div class="dashboard-kpi-value" id="kpi-total-cost">R$ {{ "%.2f"|format(kpis.total_cost) }}</div>
+                <div class="dashboard-kpi-note">Soma de quantidade × custo unitário das saídas no recorte.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card dashboard-kpi dashboard-kpi-red h-100">
+            <div class="card-body">
+                <div class="dashboard-kpi-head">
+                    <div class="kpi-icon kpi-icon-red"><i class="bi bi-trophy"></i></div>
+                    <div class="dashboard-kpi-label">Maior contribuição</div>
+                </div>
+                <div class="dashboard-kpi-value" id="kpi-leader-share">
+                    {% if kpis.leader_name %}{{ "%.1f"|format(kpis.leader_share_pct) }}%{% else %}—{% endif %}
+                </div>
+                <div class="dashboard-kpi-note" id="kpi-leader-name">
+                    {{ kpis.leader_name or 'Sem dados de custo no período.' }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card dashboard-kpi dashboard-kpi-green h-100">
+            <div class="card-body">
+                <div class="dashboard-kpi-head">
+                    <div class="kpi-icon kpi-icon-green"><i class="bi bi-currency-dollar"></i></div>
+                    <div class="dashboard-kpi-label">Preço médio de compra</div>
+                </div>
+                <div class="dashboard-kpi-value" id="kpi-avg-price">R$ {{ "%.2f"|format(kpis.avg_purchase_price) }}</div>
+                <div class="dashboard-kpi-note">Cada mês usa o último preço conhecido de cada ferramenta até aquele ponto.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card dashboard-kpi dashboard-kpi-teal h-100">
+            <div class="card-body">
+                <div class="dashboard-kpi-head">
+                    <div class="kpi-icon kpi-icon-teal"><i class="bi bi-graph-up-arrow"></i></div>
+                    <div class="dashboard-kpi-label">Tendência de preço</div>
+                </div>
+                <div class="dashboard-kpi-value" id="kpi-recent-variation">
+                    {% if kpis.avg_recent_variation_pct > 0 %}+{% endif %}{{ "%.1f"|format(kpis.avg_recent_variation_pct) }}%
+                </div>
+                <div class="dashboard-kpi-note" id="kpi-rising-falling">
+                    <span class="text-danger">{{ kpis.rising_count }} subindo</span> ·
+                    <span class="text-success">{{ kpis.falling_count }} caindo</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ====== SECTION 1: CONSUMED COST ====== -->
+<div class="dashboard-section-heading">
+    <div>
+        <span class="dashboard-section-kicker">Custo consumido</span>
+        <h2 class="dashboard-section-title">O que o consumo realmente custou</h2>
+        <p class="dashboard-section-copy mb-0">
+            Use esta seção para explicar variações do gráfico de custo mensal: tendência, participação por ferramenta e maiores impactos versus o período anterior.
+        </p>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card dashboard-panel h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-cash-coin me-1"></i>Custo Mensal Consumido (R$)</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalCostExpand">
+                    <i class="bi bi-arrows-fullscreen"></i>
+                </button>
+            </div>
+            <div class="card-body">
+                <canvas id="chartFinCost" class="dashboard-chart dashboard-chart-tall"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card dashboard-panel h-100">
+            <div class="card-header"><i class="bi bi-pie-chart"></i>Contribuição por Ferramenta (Top 10)</div>
+            <div class="card-body">
+                <canvas id="chartFinShare" class="dashboard-chart dashboard-chart-tall"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card dashboard-panel h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-arrow-up-right me-1"></i>Top 3 Altas de Custo Médio</span>
+                <span class="badge bg-danger">sem peso por utilização</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive dashboard-table-scroll-compact">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-dark sticky-top">
+                            <tr>
+                                <th>Ferramenta</th>
+                                <th class="text-end">Atual</th>
+                                <th class="text-end">Anterior</th>
+                                <th class="text-end">Δ R$</th>
+                                <th class="text-end">Δ %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-impact-up">
+                        {% for r in impact.top_up %}
+                            <tr>
+                                <td><a href="/tools/{{ r.tool_id }}" class="dashboard-table-link">{{ r.name }}</a></td>
+                                <td class="text-end">R$ {{ "%.2f"|format(r.current_cost) }}</td>
+                                <td class="text-end">R$ {{ "%.2f"|format(r.previous_cost) }}</td>
+                                <td class="text-end text-danger fw-bold">+R$ {{ "%.2f"|format(r.delta_abs) }}</td>
+                                <td class="text-end text-danger">+{{ "%.1f"|format(r.delta_pct) }}%</td>
+                            </tr>
+                        {% endfor %}
+                        {% if not impact.top_up %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">Nenhuma ferramenta com alta significativa</td></tr>
+                        {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card dashboard-panel h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-arrow-down-right me-1"></i>Top 3 Quedas de Custo Médio</span>
+                <span class="badge bg-success">sem peso por utilização</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive dashboard-table-scroll-compact">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-dark sticky-top">
+                            <tr>
+                                <th>Ferramenta</th>
+                                <th class="text-end">Atual</th>
+                                <th class="text-end">Anterior</th>
+                                <th class="text-end">Δ R$</th>
+                                <th class="text-end">Δ %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-impact-down">
+                        {% for r in impact.top_down %}
+                            <tr>
+                                <td><a href="/tools/{{ r.tool_id }}" class="dashboard-table-link">{{ r.name }}</a></td>
+                                <td class="text-end">R$ {{ "%.2f"|format(r.current_cost) }}</td>
+                                <td class="text-end">R$ {{ "%.2f"|format(r.previous_cost) }}</td>
+                                <td class="text-end text-success fw-bold">R$ {{ "%.2f"|format(r.delta_abs) }}</td>
+                                <td class="text-end text-success">{{ "%.1f"|format(r.delta_pct) }}%</td>
+                            </tr>
+                        {% endfor %}
+                        {% if not impact.top_down %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">Nenhuma ferramenta com queda significativa</td></tr>
+                        {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ====== SECTION 2: PURCHASE PRICE ====== -->
+<div class="dashboard-section-heading">
+    <div>
+        <span class="dashboard-section-kicker">Preço de compra</span>
+        <h2 class="dashboard-section-title">Como o preço das ferramentas evoluiu</h2>
+        <p class="dashboard-section-copy mb-0">
+            Base: histórico importado do TOTVS. A curva usa o último preço conhecido de cada ferramenta em cada mês, sem misturar consumo na conta.
+        </p>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card dashboard-panel h-100">
+            <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                <span><i class="bi bi-graph-up"></i>Tendência do Preço Médio de Compra (R$)</span>
+                <a href="{{ financial_table_url }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-table me-1"></i>Abrir tabela financeira
+                </a>
+            </div>
+            <div class="card-body">
+                <canvas id="chartFinPrice" class="dashboard-chart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal: Custo Mensal Consumido expandido -->
+<div class="modal fade" id="modalCostExpand" tabindex="-1" aria-labelledby="modalCostExpandLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalCostExpandLabel"><i class="bi bi-cash-coin me-2"></i>Custo Mensal Consumido (R$)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                    <input type="text" id="modalCostFilterName"
+                           class="form-control form-control-sm"
+                           style="max-width: 16rem;"
+                           placeholder="Filtrar por ferramenta...">
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                id="modalCostTypeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-tags me-1"></i><span id="modalCostTypeLabel">Todos os tipos</span>
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="modalCostTypeDropdown">
+                            <li><a class="dropdown-item modal-cost-type-item" href="#" data-value="0">Todos os tipos</a></li>
+                            {% for tt in tool_types %}
+                            <li><a class="dropdown-item modal-cost-type-item" href="#" data-value="{{ tt.id }}">{{ tt.name }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <span id="modalCostSpinner" class="spinner-border spinner-border-sm text-secondary d-none" role="status"></span>
+                </div>
+                <canvas id="chartFinCostModal"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ====== Chart defaults (mirrors dashboard.html) ====== */
+const theme = getComputedStyle(document.documentElement);
+const readThemeColor = (name) => theme.getPropertyValue(name).trim();
+const hexToRgba = (hex, alpha) => {
+    const normalized = hex.replace('#', '');
+    const fullHex = normalized.length === 3
+        ? normalized.split('').map((c) => c + c).join('')
+        : normalized;
+    const value = Number.parseInt(fullHex, 16);
+    const r = (value >> 16) & 255;
+    const g = (value >> 8) & 255;
+    const b = value & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const accentBlue   = readThemeColor('--accent-blue');
+const accentGreen  = readThemeColor('--accent-green');
+const accentRed    = readThemeColor('--accent-red');
+const accentYellow = readThemeColor('--accent-yellow');
+const accentPurple = readThemeColor('--accent-purple');
+const accentTeal   = readThemeColor('--accent-teal');
+const accentOrange = readThemeColor('--accent-orange');
+
+Chart.defaults.color = readThemeColor('--text-secondary');
+Chart.defaults.borderColor = hexToRgba(readThemeColor('--border-color'), 0.55);
+
+const PALETTE = [
+    hexToRgba(accentBlue, 0.84),
+    hexToRgba(accentGreen, 0.84),
+    hexToRgba(accentRed, 0.84),
+    hexToRgba(accentYellow, 0.84),
+    hexToRgba(accentPurple, 0.84),
+    hexToRgba(accentTeal, 0.84),
+    hexToRgba(accentOrange, 0.84),
+    'rgba(139, 188, 255, 0.84)',
+    'rgba(110, 175, 211, 0.84)',
+    'rgba(165, 149, 223, 0.84)',
+];
+
+const primaryFill = hexToRgba(accentBlue, 0.72);
+const warningFill = hexToRgba(accentYellow, 0.18);
+
+const PAYLOAD = {{ payload | tojson }};
+
+const brl = (v) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+/* ---- Chart: monthly consumed cost ---- */
+let chartCost = null;
+(function () {
+    const ctx = document.getElementById('chartFinCost');
+    if (!ctx) return;
+    chartCost = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: PAYLOAD.cost_series.labels,
+            datasets: [{
+                label: 'Custo (R$)',
+                data: PAYLOAD.cost_series.data,
+                borderColor: accentBlue,
+                backgroundColor: warningFill,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4,
+                pointBackgroundColor: accentBlue,
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: (c) => brl(c.parsed.y) } }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { callback: (v) => brl(v) } }
+            }
+        }
+    });
+})();
+
+/* ---- Chart: cost share by tool (horizontal bar with %) ---- */
+let chartShare = null;
+(function () {
+    const ctx = document.getElementById('chartFinShare');
+    if (!ctx) return;
+    chartShare = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: PAYLOAD.share.labels,
+            datasets: [{
+                label: 'Participação (%)',
+                data: PAYLOAD.share.pcts,
+                backgroundColor: PALETTE,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (c) => {
+                            const cost = PAYLOAD.share.costs[c.dataIndex] || 0;
+                            return `${c.parsed.x.toFixed(2)}% (${brl(cost)})`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { beginAtZero: true, ticks: { callback: (v) => v + '%' } }
+            }
+        }
+    });
+})();
+
+/* ---- Chart: avg purchase price trend ---- */
+let chartPrice = null;
+(function () {
+    const ctx = document.getElementById('chartFinPrice');
+    if (!ctx) return;
+    chartPrice = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: PAYLOAD.price_series.labels,
+            datasets: [{
+                label: 'Preço médio (R$)',
+                data: PAYLOAD.price_series.data,
+                borderColor: accentTeal,
+                backgroundColor: hexToRgba(accentTeal, 0.18),
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4,
+                pointBackgroundColor: accentTeal,
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: (c) => brl(c.parsed.y) } }
+            },
+            scales: {
+                y: { beginAtZero: false, ticks: { callback: (v) => brl(v) } }
+            }
+        }
+    });
+})();
+
+/* ====== AJAX filter ====== */
+(function () {
+    const form = document.getElementById('filterForm');
+    if (!form) return;
+
+    const fmtPct = (v, sign) => (sign && v > 0 ? '+' : '') + Number(v || 0).toFixed(1) + '%';
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+    const renderImpactRow = (r, up) => `
+        <tr>
+            <td><a href="/tools/${r.tool_id}" class="dashboard-table-link">${r.name}</a></td>
+            <td class="text-end">${brl(r.current_cost)}</td>
+            <td class="text-end">${brl(r.previous_cost)}</td>
+            <td class="text-end ${up ? 'text-danger' : 'text-success'} fw-bold">
+                ${up ? '+' : ''}${brl(r.delta_abs)}
+            </td>
+            <td class="text-end ${up ? 'text-danger' : 'text-success'}">${fmtPct(r.delta_pct, up)}</td>
+        </tr>`;
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const params = new URLSearchParams(new FormData(form)).toString();
+        fetch('/api/financials?' + params)
+            .then(r => r.json())
+            .then(d => {
+                // KPIs
+                setText('kpi-total-cost', brl(d.kpis.total_cost));
+                setText('kpi-leader-share', d.kpis.leader_name ? Number(d.kpis.leader_share_pct).toFixed(1) + '%' : '—');
+                setText('kpi-leader-name', d.kpis.leader_name || 'Sem dados de custo no período.');
+                setText('kpi-avg-price', brl(d.kpis.avg_purchase_price));
+                setText('kpi-recent-variation', fmtPct(d.kpis.avg_recent_variation_pct, true));
+                const rf = document.getElementById('kpi-rising-falling');
+                if (rf) rf.innerHTML = `<span class="text-danger">${d.kpis.rising_count} subindo</span> · <span class="text-success">${d.kpis.falling_count} caindo</span>`;
+                setText('kpi-delta-total-pct', (d.kpis.delta_total_pct > 0 ? '+' : '') + Number(d.kpis.delta_total_pct).toFixed(1) + '%');
+                setText('kpi-delta-total-abs', (d.kpis.delta_total >= 0 ? '+' : '') + brl(d.kpis.delta_total) + ' em custo consumido.');
+
+                // Charts
+                if (chartCost) {
+                    chartCost.data.labels = d.cost_series.labels;
+                    chartCost.data.datasets[0].data = d.cost_series.data;
+                    chartCost.update();
+                }
+                if (chartShare) {
+                    chartShare.data.labels = d.share.labels;
+                    chartShare.data.datasets[0].data = d.share.pcts;
+                    // refresh closures used by tooltip
+                    PAYLOAD.share.costs = d.share.costs;
+                    PAYLOAD.share.pcts = d.share.pcts;
+                    chartShare.update();
+                }
+                if (chartPrice) {
+                    chartPrice.data.labels = d.price_series.labels;
+                    chartPrice.data.datasets[0].data = d.price_series.data;
+                    chartPrice.update();
+                }
+
+                // Tables
+                const tbUp = document.getElementById('tbody-impact-up');
+                if (tbUp) tbUp.innerHTML = d.impact.top_up.length
+                    ? d.impact.top_up.map(r => renderImpactRow(r, true)).join('')
+                    : '<tr><td colspan="5" class="text-center text-muted py-3">Nenhuma ferramenta com alta significativa</td></tr>';
+
+                const tbDown = document.getElementById('tbody-impact-down');
+                if (tbDown) tbDown.innerHTML = d.impact.top_down.length
+                    ? d.impact.top_down.map(r => renderImpactRow(r, false)).join('')
+                    : '<tr><td colspan="5" class="text-center text-muted py-3">Nenhuma ferramenta com queda significativa</td></tr>';
+            })
+            .catch(err => console.error('Filter error:', err));
+    });
+})();
+
+/* ---- Modal: expand cost chart ---- */
+(function () {
+    let chartCostModal = null;
+    let modalTypeId = 0;
+    let modalDebounce = null;
+
+    const modalEl = document.getElementById('modalCostExpand');
+    if (!modalEl) return;
+
+    const buildChart = (labels, data) => {
+        const ctx = document.getElementById('chartFinCostModal');
+        if (!ctx) return;
+        if (chartCostModal) { chartCostModal.destroy(); chartCostModal = null; }
+        chartCostModal = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Custo (R$)',
+                    data,
+                    borderColor: accentBlue,
+                    backgroundColor: warningFill,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 5,
+                    pointBackgroundColor: accentBlue,
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: (c) => brl(c.parsed.y) } }
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { callback: (v) => brl(v) } }
+                }
+            }
+        });
+    };
+
+    const fetchAndRender = () => {
+        const spinner = document.getElementById('modalCostSpinner');
+        const nameVal = (document.getElementById('modalCostFilterName') || {}).value || '';
+        // inherit date range from main filter form
+        const mainForm = document.getElementById('filterForm');
+        const params = new URLSearchParams();
+        if (mainForm) {
+            const fd = new FormData(mainForm);
+            for (const [k, v] of fd.entries()) params.set(k, v);
+        }
+        if (nameVal) params.set('tool_name', nameVal);
+        if (modalTypeId) params.set('tool_type_id', String(modalTypeId));
+        if (spinner) spinner.classList.remove('d-none');
+        fetch('/api/financials?' + params.toString())
+            .then(r => r.json())
+            .then(d => { buildChart(d.cost_series.labels, d.cost_series.data); })
+            .catch(err => console.error('Modal filter error:', err))
+            .finally(() => { if (spinner) spinner.classList.add('d-none'); });
+    };
+
+    modalEl.addEventListener('shown.bs.modal', function () {
+        modalTypeId = 0;
+        const lbl = document.getElementById('modalCostTypeLabel');
+        if (lbl) lbl.textContent = 'Todos os tipos';
+        const nameInput = document.getElementById('modalCostFilterName');
+        if (nameInput) nameInput.value = '';
+        buildChart(PAYLOAD.cost_series.labels, PAYLOAD.cost_series.data);
+    });
+
+    modalEl.addEventListener('hidden.bs.modal', function () {
+        if (chartCostModal) { chartCostModal.destroy(); chartCostModal = null; }
+    });
+
+    // name input: debounced fetch
+    const nameInput = document.getElementById('modalCostFilterName');
+    if (nameInput) {
+        nameInput.addEventListener('input', () => {
+            clearTimeout(modalDebounce);
+            modalDebounce = setTimeout(fetchAndRender, 420);
+        });
+    }
+
+    // type dropdown items
+    document.querySelectorAll('.modal-cost-type-item').forEach(item => {
+        item.addEventListener('click', function (e) {
+            e.preventDefault();
+            modalTypeId = Number(this.dataset.value) || 0;
+            const lbl = document.getElementById('modalCostTypeLabel');
+            if (lbl) lbl.textContent = this.textContent;
+            fetchAndRender();
+        });
+    });
+})();
+</script>
+{% endblock %}
