@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set active_page = "movements" %}
 {% set is_admin = request.state.current_user and request.state.current_user.role == 'ADMIN' %}
-{% set current_url = '/movements?' ~ ('category=' ~ category) ~ '&tool_id=' ~ selected_tool_id ~ '&sort=' ~ sort ~ '&search=' ~ ((search or '')|urlencode) ~ '&search_col=' ~ ((search_col or 'all')|urlencode) ~ '&date_from=' ~ ((date_from or '')|urlencode) ~ '&date_to=' ~ ((date_to or '')|urlencode) ~ '&page=' ~ page ~ '&per_page=' ~ per_page %}
+{% set current_url = '/movements?' ~ ('category=' ~ category) ~ '&tool_id=' ~ selected_tool_id ~ '&sort_by=' ~ sort_by ~ '&sort_dir=' ~ sort_dir ~ '&search=' ~ ((search or '')|urlencode) ~ '&search_col=' ~ ((search_col or 'all')|urlencode) ~ '&date_from=' ~ ((date_from or '')|urlencode) ~ '&date_to=' ~ ((date_to or '')|urlencode) ~ '&page=' ~ page ~ '&per_page=' ~ per_page %}
 {% set selected_tool = namespace(name='Todas as Ferramentas') %}
 {% if selected_tool_id and selected_tool_id != 0 %}
   {% for t in tools %}
@@ -10,6 +10,22 @@
     {% endif %}
   {% endfor %}
 {% endif %}
+{% set mv_sort_label_map = {'timestamp': 'Data', 'tool': 'Ferramenta', 'counterparty': 'Funcionário' if category == 'EMPRESTIMO' else 'Máquina', 'movement_type': 'Tipo', 'quantity': 'Qtd.', 'unit_cost': 'Custo unit.', 'total_cost': 'Custo total', 'loan_status': 'Status', 'return_timestamp': 'Devolução'} %}
+
+{% macro mv_sort_header(label, key, extra_class='') -%}
+  {% set is_active = current_sort_by == key %}
+  {% set next_dir = 'desc' if is_active and current_sort_dir == 'asc' else 'asc' %}
+  {% set icon = 'bi-arrow-down-up' %}
+  {% if is_active %}
+    {% set icon = 'bi-arrow-up' if current_sort_dir == 'asc' else 'bi-arrow-down' %}
+  {% endif %}
+  <th class="sortable {{ extra_class }} {% if is_active %}{{ current_sort_dir }}{% endif %}">
+    <a href="/movements?category={{ category }}&tool_id={{ selected_tool_id }}&sort_by={{ key }}&sort_dir={{ next_dir }}&search={{ (search or '')|urlencode }}&search_col={{ (search_col or 'all')|urlencode }}&date_from={{ (date_from or '')|urlencode }}&date_to={{ (date_to or '')|urlencode }}&per_page={{ per_page }}" class="sortable-link">
+      <span>{{ label }}</span>
+      <i class="bi {{ icon }} sort-icon"></i>
+    </a>
+  </th>
+{%- endmacro %}
 
 {% block title %}Movimentações – Almoxarifado{% endblock %}
 {% block topbar_title %}Movimentações{% endblock %}
@@ -63,117 +79,105 @@
 
   <!-- Category tabs — primary context selector -->
   <div class="category-tabs mb-0">
-    <a href="/movements?category=EMPRESTIMO&tool_id={{ selected_tool_id }}&sort={{ sort }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&per_page={{ per_page }}"
+    <a href="/movements?category=EMPRESTIMO&tool_id={{ selected_tool_id }}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&per_page={{ per_page }}"
        class="category-tab {% if category == 'EMPRESTIMO' %}active{% endif %}">
       <i class="bi bi-person-badge me-1"></i>Empréstimos
     </a>
-    <a href="/movements?category=REPOSICAO&tool_id={{ selected_tool_id }}&sort={{ sort }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&per_page={{ per_page }}"
+    <a href="/movements?category=REPOSICAO&tool_id={{ selected_tool_id }}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&per_page={{ per_page }}"
        class="category-tab {% if category == 'REPOSICAO' %}active{% endif %}">
       <i class="bi bi-gear me-1"></i>Reposições
     </a>
   </div>
 
   <div class="movements-toolbar-shell">
-    <div class="movements-toolbar-tier movements-toolbar-tier--context">
-      <div class="movements-toolbar-section movements-toolbar-section--tool">
-        <span class="movements-toolbar-label">Ferramenta em foco</span>
-        <form method="GET" action="/movements" class="toolbar-inline-form" id="toolFilterForm">
-          <input type="hidden" name="category" value="{{ category }}">
-          <input type="hidden" name="sort" value="{{ sort }}">
-          <input type="hidden" name="search" value="{{ search }}">
-          <input type="hidden" name="search_col" value="{{ search_col }}">
-          <input type="hidden" name="date_from" value="{{ date_from }}">
-          <input type="hidden" name="date_to" value="{{ date_to }}">
-          <input type="hidden" name="per_page" value="{{ per_page }}">
-          <select name="tool_id" class="form-select form-select-sm movements-tool-select" onchange="this.form.submit()">
-            <option value="0">Todas as Ferramentas</option>
-            {% for t in tools %}
-            <option value="{{ t.id }}" {% if selected_tool_id == t.id %}selected{% endif %}>
-              {{ t.name }}
-            </option>
-            {% endfor %}
-          </select>
-        </form>
+    <form method="GET" action="/movements" class="movements-toolbar-form" id="movementsFiltersForm">
+      <input type="hidden" name="category" value="{{ category }}">
+      <input type="hidden" name="sort_by" value="{{ sort_by }}">
+      <input type="hidden" name="sort_dir" value="{{ sort_dir }}">
+      <input type="hidden" name="per_page" value="{{ per_page }}">
+
+      <div class="movements-toolbar-tier movements-toolbar-tier--context">
+        <div class="movements-toolbar-section movements-toolbar-section--tool">
+          <span class="movements-toolbar-label">Ferramenta em foco</span>
+          <div class="toolbar-inline-form">
+            <select name="tool_id" class="form-select form-select-sm movements-tool-select" onchange="this.form.submit()">
+              <option value="0">Todas as Ferramentas</option>
+              {% for t in tools %}
+              <option value="{{ t.id }}" {% if selected_tool_id == t.id %}selected{% endif %}>
+                {{ t.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        {% if (selected_tool_id and selected_tool_id != 0) or search or date_from or date_to or is_admin %}
+        <div class="movements-toolbar-section movements-toolbar-section--actions">
+          <span class="movements-toolbar-label">Ações rápidas</span>
+          <div class="movements-toolbar-actions">
+            {% if (selected_tool_id and selected_tool_id != 0) or search or date_from or date_to %}
+            <a href="/movements?category={{ category }}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&per_page={{ per_page }}" class="btn btn-sm btn-outline-secondary tools-action-btn">
+              <i class="bi bi-x-lg me-1"></i>Limpar filtros
+            </a>
+            {% endif %}
+            {% if is_admin %}
+            <button type="button" class="btn btn-sm btn-primary tools-action-btn"
+                    data-bs-toggle="modal" data-bs-target="#manualMovementModal">
+              <i class="bi bi-plus-lg me-1"></i>Adicionar manualmente
+            </button>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
       </div>
-      {% if (selected_tool_id and selected_tool_id != 0) or search or date_from or date_to or is_admin %}
-      <div class="movements-toolbar-section movements-toolbar-section--actions">
-        <span class="movements-toolbar-label">Ações rápidas</span>
-        <div class="movements-toolbar-actions">
-          {% if (selected_tool_id and selected_tool_id != 0) or search or date_from or date_to %}
-          <a href="/movements?category={{ category }}&per_page={{ per_page }}" class="btn btn-sm btn-outline-secondary tools-action-btn">
-            <i class="bi bi-x-lg me-1"></i>Limpar filtros
-          </a>
-          {% endif %}
-          {% if is_admin %}
-          <button type="button" class="btn btn-sm btn-primary tools-action-btn"
-                  data-bs-toggle="modal" data-bs-target="#manualMovementModal">
-            <i class="bi bi-plus-lg me-1"></i>Adicionar manualmente
-          </button>
-          {% endif %}
+
+      <div class="movements-toolbar-tier movements-toolbar-tier--filters">
+        <div class="movements-toolbar-section movements-toolbar-section--period">
+          <span class="movements-toolbar-label">Período</span>
+          <div class="toolbar-inline-form">
+            <input type="date" name="date_from" class="form-control form-control-sm movements-date-input"
+                   value="{{ date_from }}" title="Data inicial">
+            <span class="toolbar-separator">até</span>
+            <input type="date" name="date_to" class="form-control form-control-sm movements-date-input"
+                   value="{{ date_to }}" title="Data final">
+            <button type="submit" class="btn btn-sm btn-outline-secondary tools-action-btn" title="Aplicar recorte de data">
+              <i class="bi bi-calendar-check"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="movements-toolbar-section movements-toolbar-section--search">
+          <span class="movements-toolbar-label">Busca no histórico</span>
+          <div class="tools-search-form movements-search-form">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text tools-search-icon"><i class="bi bi-search"></i></span>
+              <input type="text" name="search" class="form-control form-control-sm" id="mvSearchInput"
+                     placeholder="Buscar..." value="{{ search }}">
+              <input type="hidden" name="search_col" id="mvSearchColInput" value="{{ search_col or 'all' }}">
+              <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                      data-bs-toggle="dropdown" aria-expanded="false" id="mvSearchColBtn">
+                <span id="mvSearchColLabel">{{ mv_col_labels.get(search_col, 'Todos') }}</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end" id="mvSearchColMenu">
+                <li><a class="dropdown-item" href="#" data-col="all">Todos</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#" data-col="tool">Ferramenta</a></li>
+                {% if category == 'EMPRESTIMO' %}
+                <li><a class="dropdown-item" href="#" data-col="employee">Funcionário</a></li>
+                {% else %}
+                <li><a class="dropdown-item" href="#" data-col="machine">Máquina</a></li>
+                {% endif %}
+                <li><a class="dropdown-item" href="#" data-col="type">Tipo</a></li>
+                {% if category == 'EMPRESTIMO' %}
+                <li><a class="dropdown-item" href="#" data-col="status">Status</a></li>
+                {% endif %}
+                <li><a class="dropdown-item" href="#" data-col="notes">Observações</a></li>
+              </ul>
+              <button class="btn btn-sm btn-outline-secondary" type="submit">Aplicar</button>
+            </div>
+          </div>
         </div>
       </div>
-      {% endif %}
-    </div>
-
-    <div class="movements-toolbar-tier movements-toolbar-tier--filters">
-      <div class="movements-toolbar-section movements-toolbar-section--period">
-        <span class="movements-toolbar-label">Período</span>
-        <form method="GET" action="/movements" class="toolbar-inline-form" id="dateFilterForm">
-          <input type="hidden" name="category" value="{{ category }}">
-          <input type="hidden" name="sort" value="{{ sort }}">
-          <input type="hidden" name="search" value="{{ search }}">
-          <input type="hidden" name="search_col" value="{{ search_col }}">
-          <input type="hidden" name="tool_id" value="{{ selected_tool_id }}">
-          <input type="hidden" name="per_page" value="{{ per_page }}">
-          <input type="date" name="date_from" class="form-control form-control-sm movements-date-input"
-                 value="{{ date_from }}" title="Data inicial">
-          <span class="toolbar-separator">até</span>
-          <input type="date" name="date_to" class="form-control form-control-sm movements-date-input"
-                 value="{{ date_to }}" title="Data final">
-          <button type="submit" class="btn btn-sm btn-outline-secondary tools-action-btn" title="Filtrar por data">
-            <i class="bi bi-calendar-check"></i>
-          </button>
-        </form>
-      </div>
-
-      <div class="movements-toolbar-section movements-toolbar-section--search">
-        <span class="movements-toolbar-label">Busca no histórico</span>
-        <form method="GET" action="/movements" class="tools-search-form movements-search-form" id="mvSearchForm">
-          <input type="hidden" name="category" value="{{ category }}">
-          <input type="hidden" name="tool_id" value="{{ selected_tool_id }}">
-          <input type="hidden" name="sort" value="{{ sort }}">
-          <input type="hidden" name="date_from" value="{{ date_from }}">
-          <input type="hidden" name="date_to" value="{{ date_to }}">
-          <input type="hidden" name="per_page" value="{{ per_page }}">
-          <div class="input-group input-group-sm">
-            <span class="input-group-text tools-search-icon"><i class="bi bi-search"></i></span>
-            <input type="text" name="search" class="form-control form-control-sm" id="mvSearchInput"
-                   placeholder="Buscar..." value="{{ search }}">
-            <input type="hidden" name="search_col" id="mvSearchColInput" value="{{ search_col or 'all' }}">
-            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
-                    data-bs-toggle="dropdown" aria-expanded="false" id="mvSearchColBtn">
-              <span id="mvSearchColLabel">{{ mv_col_labels.get(search_col, 'Todos') }}</span>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end" id="mvSearchColMenu">
-              <li><a class="dropdown-item" href="#" data-col="all">Todos</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="#" data-col="tool">Ferramenta</a></li>
-              {% if category == 'EMPRESTIMO' %}
-              <li><a class="dropdown-item" href="#" data-col="employee">Funcionário</a></li>
-              {% else %}
-              <li><a class="dropdown-item" href="#" data-col="machine">Máquina</a></li>
-              {% endif %}
-              <li><a class="dropdown-item" href="#" data-col="type">Tipo</a></li>
-              {% if category == 'EMPRESTIMO' %}
-              <li><a class="dropdown-item" href="#" data-col="status">Status</a></li>
-              {% endif %}
-              <li><a class="dropdown-item" href="#" data-col="notes">Observações</a></li>
-            </ul>
-            <button class="btn btn-sm btn-outline-secondary" type="submit">Buscar</button>
-          </div>
-        </form>
-      </div>
-    </div>
+    </form>
   </div>
 
   <div class="ops-feedback-bar">
@@ -182,22 +186,25 @@
       <span class="ops-feedback-label">{{ 'Empréstimos' if category == 'EMPRESTIMO' else 'Reposições' }}</span>
     </div>
     <div class="ops-feedback-chips">
+      <span class="filter-chip filter-chip--static">
+        <i class="bi bi-arrow-down-up"></i>{{ mv_sort_label_map.get(current_sort_by, 'Data') }} · {{ 'Crescente' if current_sort_dir == 'asc' else 'Decrescente' }}
+      </span>
       {% if selected_tool_id and selected_tool_id != 0 %}
       <span class="filter-chip">
         <i class="bi bi-wrench"></i>{{ selected_tool.name }}
-        <a href="/movements?category={{ category }}&tool_id=0&sort={{ sort }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&per_page={{ per_page }}" class="filter-chip-remove" title="Remover filtro da ferramenta">&times;</a>
+        <a href="/movements?category={{ category }}&tool_id=0&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&per_page={{ per_page }}" class="filter-chip-remove" title="Remover filtro da ferramenta">&times;</a>
       </span>
       {% endif %}
       {% if date_from or date_to %}
       <span class="filter-chip">
         <i class="bi bi-calendar3"></i>{{ date_from or 'Início aberto' }} até {{ date_to or 'Hoje' }}
-        <a href="/movements?category={{ category }}&tool_id={{ selected_tool_id }}&sort={{ sort }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&per_page={{ per_page }}" class="filter-chip-remove" title="Remover filtro de data">&times;</a>
+        <a href="/movements?category={{ category }}&tool_id={{ selected_tool_id }}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&per_page={{ per_page }}" class="filter-chip-remove" title="Remover filtro de data">&times;</a>
       </span>
       {% endif %}
       {% if search %}
       <span class="filter-chip">
         <i class="bi bi-search"></i>{{ search }}{% if search_col and search_col != 'all' %} · {{ mv_col_labels.get(search_col, 'Todos') }}{% endif %}
-        <a href="/movements?category={{ category }}&tool_id={{ selected_tool_id }}&sort={{ sort }}&search=&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&per_page={{ per_page }}" class="filter-chip-remove" title="Remover busca">&times;</a>
+        <a href="/movements?category={{ category }}&tool_id={{ selected_tool_id }}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&search=&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&per_page={{ per_page }}" class="filter-chip-remove" title="Remover busca">&times;</a>
       </span>
       {% endif %}
     </div>
@@ -211,20 +218,20 @@
             <table class="table table-hover mb-0 align-middle movements-table tools-grid">
                 <thead>
                         <tr>
-                            <th class="sortable" data-sort-type="string" data-col="0">Data <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable" data-sort-type="string" data-col="1">Ferramenta <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                {{ mv_sort_header('Data', 'timestamp') }}
+                {{ mv_sort_header('Ferramenta', 'tool') }}
                             {% if category == 'EMPRESTIMO' %}
-                                <th class="sortable" data-sort-type="string" data-col="2">Funcionário <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                  {{ mv_sort_header('Funcionário', 'counterparty') }}
                             {% else %}
-                                <th class="sortable" data-sort-type="string" data-col="2">Máquina <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                  {{ mv_sort_header('Máquina', 'counterparty') }}
                             {% endif %}
-                            <th class="sortable text-center" data-sort-type="string" data-col="3">Tipo <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable text-center" data-sort-type="number" data-col="4">Qtd. <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable text-end col-cost" data-sort-type="number" data-col="5">Custo Unit. <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable text-end col-cost" data-sort-type="number" data-col="6">Custo Total <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                {{ mv_sort_header('Tipo', 'movement_type', 'text-center') }}
+                {{ mv_sort_header('Qtd.', 'quantity', 'text-center') }}
+                {{ mv_sort_header('Custo Unit.', 'unit_cost', 'text-end col-cost') }}
+                {{ mv_sort_header('Custo Total', 'total_cost', 'text-end col-cost') }}
                             {% if category == 'EMPRESTIMO' %}
-                                <th class="sortable text-center" data-sort-type="string" data-col="7">Status <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                                <th class="sortable" data-sort-type="string" data-col="8">Devolução <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                  {{ mv_sort_header('Status', 'loan_status', 'text-center') }}
+                  {{ mv_sort_header('Devolução', 'return_timestamp') }}
                                 <th class="text-center">Ação</th>
                             {% elif is_admin %}
                                 <th class="text-center">Ação</th>
@@ -276,7 +283,7 @@
                                 <td class="text-center row-actions-cell">
                                   <div class="row-action-cluster" role="group" aria-label="Ações para movimentação {{ m.id }}">
                                     {% if m.loan_status == "PENDENTE" %}
-                                      <form method="POST" action="/movements/{{ m.id }}/return" class="d-inline"
+                                      <form method="POST" action="/movements/{{ m.id }}/return" class="d-inline row-action-slot row-action-slot--primary"
                                           onsubmit="return confirm('Confirmar devolução de {{ m.tool.name }}?')">
                                         <input type="hidden" name="redirect_to" value="{{ current_url }}">
                                         <button class="btn btn-sm row-action-primary row-action-primary--success" type="submit">
@@ -285,7 +292,7 @@
                                         </button>
                                       </form>
                                       {% if is_admin %}
-                                      <div class="row-action-icons" aria-label="Ações secundárias">
+                                      <div class="row-action-slot row-action-slot--icon" aria-label="Editar movimentação">
                                         <button type="button" class="btn btn-sm row-action-icon row-action-icon--neutral mv-edit-btn"
                                             title="Editar movimentação"
                                             aria-label="Editar movimentação {{ m.id }}"
@@ -304,6 +311,8 @@
                                             data-mv-notes="{{ m.notes or '' }}">
                                           <i class="bi bi-pencil"></i>
                                         </button>
+                                      </div>
+                                      <div class="row-action-slot row-action-slot--icon" aria-label="Excluir movimentação">
                                         <button type="button" class="btn btn-sm row-action-icon row-action-icon--danger mv-delete-btn"
                                             title="Excluir movimentação"
                                             aria-label="Excluir movimentação {{ m.id }}"
@@ -314,25 +323,28 @@
                                       </div>
                                       {% endif %}
                                     {% elif is_admin %}
-                                      <button type="button" class="btn btn-sm row-action-primary row-action-primary--neutral mv-edit-btn"
-                                          title="Editar movimentação"
-                                          data-mv-id="{{ m.id }}"
-                                          data-mv-tool-id="{{ m.tool_id }}"
-                                          data-mv-tool-name="{{ m.tool.name }}"
-                                          data-mv-type="{{ m.movement_type }}"
-                                          data-mv-category="{{ m.category }}"
-                                          data-mv-quantity="{{ m.quantity }}"
-                                          data-mv-timestamp="{{ m.timestamp.strftime('%Y-%m-%dT%H:%M') }}"
-                                          data-mv-employee-id="{{ m.employee_id or '' }}"
-                                          data-mv-machine-id="{{ m.machine_id or '' }}"
-                                          data-mv-unit-cost="{{ '%.2f' % (m.unit_cost or 0) }}"
-                                          data-mv-loan-status="{{ m.loan_status or '' }}"
-                                          data-mv-return-ts="{{ m.return_timestamp.strftime('%Y-%m-%dT%H:%M') if m.return_timestamp else '' }}"
-                                          data-mv-notes="{{ m.notes or '' }}">
-                                        <i class="bi bi-pencil"></i>
-                                        <span>Editar</span>
-                                      </button>
-                                      <div class="row-action-icons" aria-label="Ações secundárias">
+                                      <span class="row-action-slot row-action-slot--primary" aria-hidden="true"></span>
+                                      <div class="row-action-slot row-action-slot--icon" aria-label="Editar movimentação">
+                                        <button type="button" class="btn btn-sm row-action-icon row-action-icon--neutral mv-edit-btn"
+                                            title="Editar movimentação"
+                                            aria-label="Editar movimentação {{ m.id }}"
+                                            data-mv-id="{{ m.id }}"
+                                            data-mv-tool-id="{{ m.tool_id }}"
+                                            data-mv-tool-name="{{ m.tool.name }}"
+                                            data-mv-type="{{ m.movement_type }}"
+                                            data-mv-category="{{ m.category }}"
+                                            data-mv-quantity="{{ m.quantity }}"
+                                            data-mv-timestamp="{{ m.timestamp.strftime('%Y-%m-%dT%H:%M') }}"
+                                            data-mv-employee-id="{{ m.employee_id or '' }}"
+                                            data-mv-machine-id="{{ m.machine_id or '' }}"
+                                            data-mv-unit-cost="{{ '%.2f' % (m.unit_cost or 0) }}"
+                                            data-mv-loan-status="{{ m.loan_status or '' }}"
+                                            data-mv-return-ts="{{ m.return_timestamp.strftime('%Y-%m-%dT%H:%M') if m.return_timestamp else '' }}"
+                                            data-mv-notes="{{ m.notes or '' }}">
+                                          <i class="bi bi-pencil"></i>
+                                        </button>
+                                      </div>
+                                      <div class="row-action-slot row-action-slot--icon" aria-label="Excluir movimentação">
                                         <button type="button" class="btn btn-sm row-action-icon row-action-icon--danger mv-delete-btn"
                                             title="Excluir movimentação"
                                             aria-label="Excluir movimentação {{ m.id }}"
@@ -349,25 +361,28 @@
                             {% elif is_admin %}
                                 <td class="text-center row-actions-cell">
                                   <div class="row-action-cluster" role="group" aria-label="Ações para movimentação {{ m.id }}">
-                                    <button type="button" class="btn btn-sm row-action-primary row-action-primary--neutral mv-edit-btn"
-                                                title="Editar movimentação"
-                                                data-mv-id="{{ m.id }}"
-                                                data-mv-tool-id="{{ m.tool_id }}"
-                                                data-mv-tool-name="{{ m.tool.name }}"
-                                                data-mv-type="{{ m.movement_type }}"
-                                                data-mv-category="{{ m.category }}"
-                                                data-mv-quantity="{{ m.quantity }}"
-                                                data-mv-timestamp="{{ m.timestamp.strftime('%Y-%m-%dT%H:%M') }}"
-                                                data-mv-employee-id="{{ m.employee_id or '' }}"
-                                                data-mv-machine-id="{{ m.machine_id or '' }}"
-                                                data-mv-unit-cost="{{ '%.2f' % (m.unit_cost or 0) }}"
-                                                data-mv-loan-status="{{ m.loan_status or '' }}"
-                                                data-mv-return-ts="{{ m.return_timestamp.strftime('%Y-%m-%dT%H:%M') if m.return_timestamp else '' }}"
-                                                data-mv-notes="{{ m.notes or '' }}">
-                                              <i class="bi bi-pencil"></i>
-                                              <span>Editar</span>
-                                        </button>
-                                        <div class="row-action-icons" aria-label="Ações secundárias">
+                                        <span class="row-action-slot row-action-slot--primary" aria-hidden="true"></span>
+                                        <div class="row-action-slot row-action-slot--icon" aria-label="Editar movimentação">
+                                          <button type="button" class="btn btn-sm row-action-icon row-action-icon--neutral mv-edit-btn"
+                                              title="Editar movimentação"
+                                              aria-label="Editar movimentação {{ m.id }}"
+                                              data-mv-id="{{ m.id }}"
+                                              data-mv-tool-id="{{ m.tool_id }}"
+                                              data-mv-tool-name="{{ m.tool.name }}"
+                                              data-mv-type="{{ m.movement_type }}"
+                                              data-mv-category="{{ m.category }}"
+                                              data-mv-quantity="{{ m.quantity }}"
+                                              data-mv-timestamp="{{ m.timestamp.strftime('%Y-%m-%dT%H:%M') }}"
+                                              data-mv-employee-id="{{ m.employee_id or '' }}"
+                                              data-mv-machine-id="{{ m.machine_id or '' }}"
+                                              data-mv-unit-cost="{{ '%.2f' % (m.unit_cost or 0) }}"
+                                              data-mv-loan-status="{{ m.loan_status or '' }}"
+                                              data-mv-return-ts="{{ m.return_timestamp.strftime('%Y-%m-%dT%H:%M') if m.return_timestamp else '' }}"
+                                              data-mv-notes="{{ m.notes or '' }}">
+                                            <i class="bi bi-pencil"></i>
+                                          </button>
+                                        </div>
+                                        <div class="row-action-slot row-action-slot--icon" aria-label="Excluir movimentação">
                                           <button type="button" class="btn btn-sm row-action-icon row-action-icon--danger mv-delete-btn"
                                               title="Excluir movimentação"
                                               aria-label="Excluir movimentação {{ m.id }}"
@@ -390,7 +405,7 @@
                                     <span class="text-muted">Nenhuma movimentação encontrada{% if selected_tool_id and selected_tool_id != 0 %} com os filtros atuais{% endif %}.</span>
                                     {% if selected_tool_id and selected_tool_id != 0 %}
                                     <div class="mt-2">
-                                      <a href="/movements?category={{ category }}&per_page={{ per_page }}" class="btn btn-sm btn-outline-secondary">
+                                        <a href="/movements?category={{ category }}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&per_page={{ per_page }}" class="btn btn-sm btn-outline-secondary">
                                             <i class="bi bi-x-lg me-1"></i>Limpar filtros
                                         </a>
                                     </div>
@@ -619,60 +634,6 @@
 
 {% block scripts %}
 <script>
-// ====== Sortable Table ======
-(function() {
-    const table = document.querySelector('table.movements-table');
-    if (!table) return;
-    const headers = table.querySelectorAll('th.sortable');
-    const tbody = table.querySelector('tbody');
-
-    headers.forEach(function(th) {
-        th.addEventListener('click', function() {
-            const col = parseInt(th.dataset.col);
-            const type = th.dataset.sortType;
-            const icon = th.querySelector('.sort-icon');
-            let dir = 'asc';
-
-            if (th.classList.contains('asc')) {
-                dir = 'desc';
-            }
-
-            headers.forEach(function(h) {
-                h.classList.remove('asc', 'desc');
-                const ic = h.querySelector('.sort-icon');
-                ic.className = 'bi bi-arrow-down-up sort-icon';
-            });
-
-            th.classList.add(dir);
-            icon.className = dir === 'asc'
-                ? 'bi bi-arrow-up sort-icon'
-                : 'bi bi-arrow-down sort-icon';
-
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            rows.sort(function(a, b) {
-                const cellA = a.children[col];
-                const cellB = b.children[col];
-                if (!cellA || !cellB) return 0;
-                let valA = (cellA.textContent || '').trim();
-                let valB = (cellB.textContent || '').trim();
-
-                if (type === 'number') {
-                    valA = parseFloat(valA.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
-                    valB = parseFloat(valB.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
-                    return dir === 'asc' ? valA - valB : valB - valA;
-                }
-                valA = valA.toLowerCase();
-                valB = valB.toLowerCase();
-                if (valA < valB) return dir === 'asc' ? -1 : 1;
-                if (valA > valB) return dir === 'asc' ? 1 : -1;
-                return 0;
-            });
-
-            rows.forEach(function(row) { tbody.appendChild(row); });
-        });
-    });
-})();
-
 // ====== Column Selector for Search ======
 (function() {
     const menu = document.getElementById('mvSearchColMenu');

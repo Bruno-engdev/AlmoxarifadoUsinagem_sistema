@@ -27,7 +27,7 @@
                 {% if f_date_from or f_date_to %}
                     {{ f_date_from or 'Início aberto' }} até {{ f_date_to or 'Hoje' }}
                 {% else %}
-                    Período completo
+                    Sem recorte manual
                 {% endif %}
             </span>
             <span class="dashboard-chip">
@@ -41,6 +41,11 @@
             <span class="dashboard-chip">
                 <i class="bi bi-clock-history"></i>{{ f_idle_days }} dias sem movimentação
             </span>
+            {% if not has_period_filters %}
+            <span class="dashboard-chip">
+                <i class="bi bi-bar-chart-line"></i>Gráficos padrão: {{ dashboard_trend_months }} meses
+            </span>
+            {% endif %}
         </div>
     </div>
 
@@ -59,7 +64,7 @@
             <span class="dashboard-section-kicker">Filtro analítico</span>
             <h2 class="dashboard-filter-title">Refine a leitura sem perder contexto</h2>
             <p class="dashboard-section-copy mb-0">
-                Combine período, tipo e busca para recalcular todos os indicadores e gráficos da página.
+                Período recalcula consumo, custo e movimentações recentes. Tipo e busca também refinam estoque atual, cobertura crítica e alertas; a ociosidade segue a janela de dias definida no próprio card.
             </p>
         </div>
     </div>
@@ -100,6 +105,39 @@
             </a>
         </div>
     </form>
+</section>
+
+<section class="dashboard-scope-grid mb-4" aria-label="Escopo dos painéis do dashboard">
+    <article class="dashboard-scope-card">
+        <span class="dashboard-scope-kicker">Movimentação e custo</span>
+        <p class="dashboard-scope-copy mb-0">
+            {% if has_period_filters %}
+            Consumo, entradas vs saídas e últimas movimentações estão usando o período selecionado, refinado por tipo e busca quando ativos.
+            {% else %}
+            Sem período manual, os gráficos usam os últimos {{ dashboard_trend_months }} meses; a tabela operacional continua mostrando as 10 movimentações mais recentes.
+            {% endif %}
+        </p>
+    </article>
+    <article class="dashboard-scope-card">
+        <span class="dashboard-scope-kicker">Estoque atual e alertas</span>
+        <p class="dashboard-scope-copy mb-0">
+            {% if has_tool_filters %}
+            Capital em estoque, itens em atenção, cobertura crítica e composição por tipo estão refinados pelo tipo e pela busca atuais.
+            {% else %}
+            Sem filtro de ferramenta, estes painéis mostram o estado atual completo do almoxarifado.
+            {% endif %}
+        </p>
+    </article>
+    <article class="dashboard-scope-card">
+        <span class="dashboard-scope-kicker">Portfólio e ociosidade</span>
+        <p class="dashboard-scope-copy mb-0">
+            {% if has_period_filters %}
+            Alto consumo e itens sem saída usam o recorte selecionado; a ociosidade continua seguindo a janela de {{ f_idle_days }} dias sem movimentação.
+            {% else %}
+            Sem período manual, alto consumo e itens sem saída usam {{ dashboard_portfolio_months }} meses por padrão; a ociosidade usa {{ f_idle_days }} dias.
+            {% endif %}
+        </p>
+    </article>
 </section>
 
 <div class="row g-3 mb-4">
@@ -169,7 +207,14 @@
         <div class="card dashboard-panel h-100">
             <div class="card-header"><i class="bi bi-bar-chart"></i>Consumo Mensal</div>
             <div class="card-body">
+                {% if chart_labels %}
                 <canvas id="chartMonthly" class="dashboard-chart dashboard-chart-tall"></canvas>
+                {% else %}
+                <div class="dashboard-empty-state">
+                    <i class="bi bi-bar-chart-line"></i>
+                    <span>Sem saídas registradas para montar o consumo mensal neste recorte.</span>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -177,7 +222,14 @@
         <div class="card dashboard-panel h-100">
             <div class="card-header"><i class="bi bi-arrow-down-up"></i>Entradas vs Saídas</div>
             <div class="card-body">
+                {% if io_labels %}
                 <canvas id="chartInOut" class="dashboard-chart dashboard-chart-tall"></canvas>
+                {% else %}
+                <div class="dashboard-empty-state">
+                    <i class="bi bi-arrow-down-up"></i>
+                    <span>Sem movimentações suficientes para comparar entradas e saídas neste recorte.</span>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -188,7 +240,14 @@
         <div class="card dashboard-panel h-100">
             <div class="card-header"><i class="bi bi-trophy"></i>Top 10 Ferramentas Mais Consumidas</div>
             <div class="card-body">
+                {% if top_labels %}
                 <canvas id="chartTop10" class="dashboard-chart"></canvas>
+                {% else %}
+                <div class="dashboard-empty-state dashboard-empty-state--compact">
+                    <i class="bi bi-trophy"></i>
+                    <span>Nenhum consumo acumulado encontrado para ranquear ferramentas neste recorte.</span>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -196,18 +255,14 @@
         <div class="card dashboard-panel h-100">
             <div class="card-header"><i class="bi bi-pie-chart"></i>Estoque por Tipo de Ferramenta</div>
             <div class="card-body d-flex align-items-center justify-content-center">
+                {% if sbt_labels %}
                 <canvas id="chartStockType" class="dashboard-chart dashboard-chart-compact"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row g-4 mb-4">
-    <div class="col-12">
-        <div class="card dashboard-panel h-100">
-            <div class="card-header"><i class="bi bi-cash-stack"></i>Custo Mensal de Consumo (R$)</div>
-            <div class="card-body">
-                <canvas id="chartCost" class="dashboard-chart"></canvas>
+                {% else %}
+                <div class="dashboard-empty-state dashboard-empty-state--compact">
+                    <i class="bi bi-pie-chart"></i>
+                    <span>Nenhuma ferramenta encontrada no escopo atual para compor o estoque por tipo.</span>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -217,7 +272,7 @@
     <div>
         <span class="dashboard-section-kicker">Operação</span>
         <h2 class="dashboard-section-title">Alertas imediatos e movimentação recente</h2>
-        <p class="dashboard-section-copy mb-0">Os dois painéis abaixo concentram o risco operacional do dia e o histórico mais recente.</p>
+        <p class="dashboard-section-copy mb-0">Os dois painéis abaixo concentram o risco operacional atual e as últimas movimentações dentro do recorte aplicado.</p>
     </div>
 </div>
 
@@ -370,7 +425,14 @@
     <div class="col-xl-4 col-md-6">
         <div class="card dashboard-panel h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-tools me-1"></i>Ferramentas com Alto Consumo (6 meses)</span>
+                <span>
+                    <i class="bi bi-tools me-1"></i>
+                    {% if has_period_filters %}
+                    Ferramentas com Alto Consumo no Recorte Atual
+                    {% else %}
+                    Ferramentas com Alto Consumo (6 meses)
+                    {% endif %}
+                </span>
                 <span class="badge bg-warning text-dark">{{ high_maint|length }}</span>
             </div>
             <div class="card-body p-0">
@@ -390,7 +452,7 @@
                             </tr>
                         {% endfor %}
                         {% if not high_maint %}
-                            <tr><td colspan="2" class="text-center text-muted py-3">Nenhuma ferramenta com alto consumo</td></tr>
+                            <tr><td colspan="2" class="text-center text-muted py-3">{% if has_period_filters %}Nenhuma ferramenta com alto consumo no recorte atual{% else %}Nenhuma ferramenta com alto consumo{% endif %}</td></tr>
                         {% endif %}
                         </tbody>
                     </table>
@@ -402,7 +464,14 @@
     <div class="col-xl-4 col-md-12">
         <div class="card dashboard-panel h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-archive me-1"></i>Ferramentas Raramente Usadas / Obsoletas</span>
+                <span>
+                    <i class="bi bi-archive me-1"></i>
+                    {% if has_period_filters %}
+                    Ferramentas sem Saída no Recorte Atual
+                    {% else %}
+                    Ferramentas Raramente Usadas / Obsoletas
+                    {% endif %}
+                </span>
                 <span class="badge bg-secondary">{{ rarely_used|length }}</span>
             </div>
             <div class="card-body p-0">
@@ -426,7 +495,7 @@
                             </tr>
                         {% endfor %}
                         {% if not rarely_used %}
-                            <tr><td colspan="4" class="text-center text-muted py-3">Todas as ferramentas possuem uso recente</td></tr>
+                            <tr><td colspan="4" class="text-center text-muted py-3">{% if has_period_filters %}Todas as ferramentas tiveram saída no recorte atual{% else %}Todas as ferramentas possuem uso recente{% endif %}</td></tr>
                         {% endif %}
                         </tbody>
                     </table>
@@ -481,8 +550,6 @@ const PALETTE = [
 const primaryFill = hexToRgba(accentBlue, 0.72);
 const successFill = hexToRgba(accentGreen, 0.72);
 const dangerFill = hexToRgba(accentRed, 0.72);
-const warningFill = hexToRgba(accentYellow, 0.18);
-
 /* ---- Monthly Consumption ---- */
 const ctxMonthly = document.getElementById('chartMonthly');
 if (ctxMonthly) {
@@ -587,70 +654,5 @@ if (ctxSBT) {
     });
 }
 
-/* ---- Monthly Cost (line chart) ---- */
-const ctxCost = document.getElementById('chartCost');
-if (ctxCost) {
-    new Chart(ctxCost, {
-        type: 'line',
-        data: {
-            labels: {{ cost_labels | tojson }},
-            datasets: [{
-                label: 'Custo (R$)',
-                data: {{ cost_data | tojson }},
-                borderColor: accentBlue,
-                backgroundColor: warningFill,
-                fill: true,
-                tension: 0.3,
-                pointRadius: 4,
-                pointBackgroundColor: accentBlue,
-                borderWidth: 2,
-                
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, ticks: {
-                    callback: v => 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits: 2})
-                } }
-            }
-        }
-    });
-}
-
-/* ====== AJAX dynamic filter (updates KPIs + charts without reload) ====== */
-(function() {
-    const form = document.getElementById('filterForm');
-    if (!form) return;
-
-    // Store chart instances for update
-    const charts = {};
-
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const params = new URLSearchParams(new FormData(form)).toString();
-        fetch('/api/dashboard?' + params)
-            .then(r => r.json())
-            .then(d => {
-                // Update KPI numbers
-                const kpiMap = {
-                    'kpi-tools': d.total_tools,
-                    'kpi-consumption': d.consumption_period,
-                    'kpi-movements': d.movements_period,
-                    'kpi-below': d.tools_below_count,
-                    'kpi-stock-value': 'R$ ' + Number(d.total_stock_value).toFixed(2),
-                    'kpi-capital-idle': 'R$ ' + Number(d.capital_idle).toFixed(2),
-                    'kpi-critical': d.critical_avail.pct + '%',
-                    'kpi-lifespan': d.avg_lifespan + 'h',
-                };
-                for (const [id, val] of Object.entries(kpiMap)) {
-                    const el = document.getElementById(id);
-                    if (el) el.textContent = val;
-                }
-            })
-            .catch(err => console.error('Filter error:', err));
-    });
-})();
 </script>
 {% endblock %}

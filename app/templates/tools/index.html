@@ -1,5 +1,21 @@
 {% extends "base.html" %}
 {% set active_page = "tools" %}
+{% set sort_label_map = {'id': 'ID', 'origin_id': 'ID TOTVS', 'name': 'Nome', 'tool_type': 'Tipo', 'location': 'Localização', 'min_stock': 'Mín.', 'max_stock': 'Máx.', 'current_stock': 'Estoque', 'unit_cost': 'Custo unitário', 'status': 'Status'} %}
+
+{% macro sort_header(label, key, extra_class='') -%}
+    {% set is_active = current_sort_by == key %}
+    {% set next_dir = 'desc' if is_active and current_sort_dir == 'asc' else 'asc' %}
+    {% set icon = 'bi-arrow-down-up' %}
+    {% if is_active %}
+        {% set icon = 'bi-arrow-up' if current_sort_dir == 'asc' else 'bi-arrow-down' %}
+    {% endif %}
+    <th class="sortable {{ extra_class }} {% if is_active %}{{ current_sort_dir }}{% endif %}">
+        <a href="/tools?search={{ search|urlencode }}&search_col={{ (search_col or 'all')|urlencode }}&sort_by={{ key }}&sort_dir={{ next_dir }}&per_page={{ per_page }}" class="sortable-link">
+            <span>{{ label }}</span>
+            <i class="bi {{ icon }} sort-icon"></i>
+        </a>
+    </th>
+{%- endmacro %}
 
 {% block title %}Ferramentas – Almoxarifado{% endblock %}
 {% block topbar_title %}Estoque de Ferramentas{% endblock %}
@@ -56,6 +72,8 @@
                     <input type="text" name="search" class="form-control form-control-sm" id="searchInput"
                            placeholder="Buscar por nome ou tipo..." value="{{ search }}">
                     <input type="hidden" name="search_col" id="searchColInput" value="{{ search_col or 'all' }}">
+                          <input type="hidden" name="sort_by" value="{{ current_sort_by }}">
+                          <input type="hidden" name="sort_dir" value="{{ current_sort_dir }}">
                     <input type="hidden" name="per_page" value="{{ per_page }}">
                     <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
                             data-bs-toggle="dropdown" aria-expanded="false" id="searchColBtn">
@@ -72,7 +90,7 @@
                     </ul>
                     <button class="btn btn-sm btn-outline-secondary" type="submit">Buscar</button>
                     {% if search %}
-                    <a href="/tools?per_page={{ per_page }}" class="btn btn-sm btn-outline-danger">Limpar</a>
+                    <a href="/tools?sort_by={{ current_sort_by }}&sort_dir={{ current_sort_dir }}&per_page={{ per_page }}" class="btn btn-sm btn-outline-danger">Limpar</a>
                     {% endif %}
                 </div>
             </form>
@@ -86,6 +104,9 @@
             {% endif %}
         </div>
         <div class="ops-feedback-chips">
+            <span class="filter-chip filter-chip--static">
+                <i class="bi bi-arrow-down-up"></i>{{ sort_label_map.get(current_sort_by, 'Nome') }} · {{ 'Crescente' if current_sort_dir == 'asc' else 'Decrescente' }}
+            </span>
             {% if search and search_col and search_col != 'all' %}
             <span class="filter-chip filter-chip--static">
                 <i class="bi bi-funnel"></i>{{ col_label_map.get(search_col, 'Todos') }}
@@ -94,7 +115,7 @@
             {% if search %}
             <span class="filter-chip">
                 <i class="bi bi-search"></i>{{ search }}
-                <a href="/tools" class="filter-chip-remove" title="Remover busca">&times;</a>
+                <a href="/tools?sort_by={{ current_sort_by }}&sort_dir={{ current_sort_dir }}&per_page={{ per_page }}" class="filter-chip-remove" title="Remover busca">&times;</a>
             </span>
             {% endif %}
         </div>
@@ -108,16 +129,16 @@
             <table class="table table-hover mb-0 align-middle tools-grid tools-grid--inventory">
                 <thead>
                     <tr>
-                        <th class="sortable" data-sort-type="number" data-col="0">ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        <th class="sortable" data-sort-type="string" data-col="1">ID TOTVS <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        <th class="sortable" data-sort-type="string" data-col="2">Nome da Ferramenta <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        <th class="sortable" data-sort-type="string" data-col="3">Tipo <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        <th class="sortable" data-sort-type="string" data-col="4">Localização <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        <th class="sortable text-center" data-sort-type="number" data-col="5">Mín. <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        <th class="sortable text-center" data-sort-type="number" data-col="6">Máx. <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        <th class="sortable text-center" data-sort-type="number" data-col="7">Estoque <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        <th class="sortable text-center" data-sort-type="number" data-col="8">Custo unitário <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                        <th class="sortable text-center" data-sort-type="string" data-col="9">Status <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                        {{ sort_header('ID', 'id') }}
+                        {{ sort_header('ID TOTVS', 'origin_id') }}
+                        {{ sort_header('Nome da Ferramenta', 'name') }}
+                        {{ sort_header('Tipo', 'tool_type') }}
+                        {{ sort_header('Localização', 'location') }}
+                        {{ sort_header('Mín.', 'min_stock', 'text-center') }}
+                        {{ sort_header('Máx.', 'max_stock', 'text-center') }}
+                        {{ sort_header('Estoque', 'current_stock', 'text-center') }}
+                        {{ sort_header('Custo unitário', 'unit_cost', 'text-center') }}
+                        {{ sort_header('Status', 'status', 'text-center') }}
                         <th class="text-center">Ações</th>
                     </tr>
                 </thead>
@@ -138,8 +159,8 @@
                         <td>{{ t.location or "—" }}</td>
                         <td class="text-center">{{ t.min_stock }}</td>
                         <td class="text-center">{{ t.max_stock }}</td>
-                        <td class="text-center">{{ t.max_stock }}</td>
-                        <td class="text-center fw-bold">{{ t.unit_cost }}</td>
+                        <td class="text-center">{{ t.current_stock }}</td>
+                        <td class="text-center fw-bold">{{ "R$ %.2f"|format(t.unit_cost or 0) }}</td>
                         <td class="text-center">
                             {% if t.status == "CRITICAL" %}
                                 <span class="badge bg-danger">CRÍTICO</span>
@@ -198,7 +219,7 @@
                 {% endfor %}
                 {% if not tools %}
                     <tr>
-                        <td colspan="10" class="text-center text-muted py-4">
+                        <td colspan="11" class="text-center text-muted py-4">
                             Nenhuma ferramenta encontrada. <a href="/tools/create">Cadastrar nova ferramenta</a>.
                         </td>
                     </tr>
@@ -264,6 +285,8 @@
                             <form method="GET" action="/tools/export/xlsx" id="exportForm">
                                 <input type="hidden" name="search" value="{{ search }}">
                                 <input type="hidden" name="search_col" value="{{ search_col or 'all' }}">
+                                <input type="hidden" name="sort_by" value="{{ current_sort_by }}">
+                                <input type="hidden" name="sort_dir" value="{{ current_sort_dir }}">
 
                                 <p class="text-muted mb-3" style="font-size: 0.82rem;">
                                     <i class="bi bi-info-circle me-1"></i>
@@ -447,62 +470,6 @@
 
 {% block scripts %}
 <script>
-// ====== Sortable Table ======
-(function() {
-    const table = document.querySelector('table.table');
-    if (!table) return;
-    const headers = table.querySelectorAll('th.sortable');
-    const tbody = table.querySelector('tbody');
-
-    headers.forEach(function(th) {
-        th.addEventListener('click', function() {
-            const col = parseInt(th.dataset.col);
-            const type = th.dataset.sortType;
-            const icon = th.querySelector('.sort-icon');
-            let dir = 'asc';
-
-            if (th.classList.contains('asc')) {
-                dir = 'desc';
-            }
-
-            // Reset all headers
-            headers.forEach(function(h) {
-                h.classList.remove('asc', 'desc');
-                const ic = h.querySelector('.sort-icon');
-                ic.className = 'bi bi-arrow-down-up sort-icon';
-            });
-
-            th.classList.add(dir);
-            icon.className = dir === 'asc'
-                ? 'bi bi-arrow-up sort-icon'
-                : 'bi bi-arrow-down sort-icon';
-
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            rows.sort(function(a, b) {
-                const cellA = a.children[col];
-                const cellB = b.children[col];
-                if (!cellA || !cellB) return 0;
-                let valA = (cellA.textContent || '').trim();
-                let valB = (cellB.textContent || '').trim();
-
-                if (type === 'number') {
-                    valA = parseFloat(valA) || 0;
-                    valB = parseFloat(valB) || 0;
-                    return dir === 'asc' ? valA - valB : valB - valA;
-                }
-                // string / alphabetical
-                valA = valA.toLowerCase();
-                valB = valB.toLowerCase();
-                if (valA < valB) return dir === 'asc' ? -1 : 1;
-                if (valA > valB) return dir === 'asc' ? 1 : -1;
-                return 0;
-            });
-
-            rows.forEach(function(row) { tbody.appendChild(row); });
-        });
-    });
-})();
-
 (function() {
     var modalEl = document.getElementById('toolQuickViewModal');
     if (!modalEl) return;
@@ -682,8 +649,12 @@
         var params = new URLSearchParams();
         var searchVal = '{{ search|e }}';
         var searchColVal = '{{ search_col or "all" }}';
+        var sortByVal = '{{ current_sort_by }}';
+        var sortDirVal = '{{ current_sort_dir }}';
         if (searchVal) params.set('search', searchVal);
         if (searchColVal && searchColVal !== 'all') params.set('search_col', searchColVal);
+        if (sortByVal) params.set('sort_by', sortByVal);
+        if (sortDirVal) params.set('sort_dir', sortDirVal);
         var qs = params.toString();
         labelLink.href = '/tools/print/labels' + (qs ? '?' + qs : '');
     }

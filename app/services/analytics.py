@@ -34,6 +34,15 @@ def _apply_filters(query, date_from=None, date_to=None,
     return query
 
 
+def _apply_tool_filters(query, tool_type_id=None, tool_name=None):
+    """Apply common type / name filters to a Tool-based query."""
+    if tool_type_id:
+        query = query.filter(Tool.tool_type_id == tool_type_id)
+    if tool_name:
+        query = query.filter(Tool.name.ilike(f"%{tool_name}%"))
+    return query
+
+
 # ---------------------------------------------------------------------------
 # Monthly consumption  (OUT movements)
 # ---------------------------------------------------------------------------
@@ -144,19 +153,19 @@ def get_top_consumed_tools(db: Session, limit: int = 10, *,
 # Stock by tool type
 # ---------------------------------------------------------------------------
 
-def get_stock_by_type(db: Session) -> list[dict]:
+def get_stock_by_type(db: Session, *, tool_type_id=None,
+                      tool_name=None) -> list[dict]:
     """Return [{type_name, total_stock, tool_count}, …]."""
-    rows = (
+    q = (
         db.query(
             ToolType.name,
             func.sum(Tool.current_stock).label("total_stock"),
             func.count(Tool.id).label("tool_count"),
         )
         .join(Tool, Tool.tool_type_id == ToolType.id)
-        .group_by(ToolType.name)
-        .order_by(ToolType.name)
-        .all()
     )
+    q = _apply_tool_filters(q, tool_type_id=tool_type_id, tool_name=tool_name)
+    rows = q.group_by(ToolType.name).order_by(ToolType.name).all()
     return [{"type_name": r.name,
              "total_stock": int(r.total_stock or 0),
              "tool_count": int(r.tool_count)} for r in rows]
@@ -166,20 +175,22 @@ def get_stock_by_type(db: Session) -> list[dict]:
 # Tools below minimum
 # ---------------------------------------------------------------------------
 
-def get_tools_below_minimum(db: Session) -> list[Tool]:
-    return (
+def get_tools_below_minimum(db: Session, *, tool_type_id=None,
+                            tool_name=None) -> list[Tool]:
+    q = (
         db.query(Tool)
         .filter(Tool.current_stock < Tool.min_stock, Tool.min_stock > 0)
-        .order_by(Tool.current_stock)
-        .all()
     )
+    q = _apply_tool_filters(q, tool_type_id=tool_type_id, tool_name=tool_name)
+    return q.order_by(Tool.current_stock).all()
 
 
 # ---------------------------------------------------------------------------
 # Tools with no movement for N days
 # ---------------------------------------------------------------------------
 
-def get_idle_tools(db: Session, days: int = 90) -> list[dict]:
+def get_idle_tools(db: Session, days: int = 90, *, tool_type_id=None,
+                   tool_name=None) -> list[dict]:
     """Tools that had zero movements in the last *days* days."""
     cutoff = datetime.utcnow() - timedelta(days=days)
     # sub-query: tools that DO have recent movements
@@ -189,12 +200,9 @@ def get_idle_tools(db: Session, days: int = 90) -> list[dict]:
         .distinct()
         .subquery()
     )
-    idle = (
-        db.query(Tool)
-        .filter(~Tool.id.in_(db.query(active_ids.c.tool_id)))
-        .order_by(Tool.name)
-        .all()
-    )
+    q = db.query(Tool).filter(~Tool.id.in_(db.query(active_ids.c.tool_id)))
+    q = _apply_tool_filters(q, tool_type_id=tool_type_id, tool_name=tool_name)
+    idle = q.order_by(Tool.name).all()
     return [{"id": t.id, "name": t.name, "current_stock": t.current_stock,
              "type": t.tool_type.name if t.tool_type else "—"} for t in idle]
 
@@ -203,18 +211,25 @@ def get_idle_tools(db: Session, days: int = 90) -> list[dict]:
 # Recent movements
 # ---------------------------------------------------------------------------
 
-def get_recent_movements(db: Session, limit: int = 10) -> list[Movement]:
-    return (
+def get_recent_movements(db: Session, limit: int = 10, *, date_from=None,
+                         date_to=None, tool_type_id=None,
+                         tool_name=None) -> list[Movement]:
+    q = (
         db.query(Movement)
         .options(
             joinedload(Movement.tool),
             joinedload(Movement.employee),
             joinedload(Movement.machine),
         )
-        .order_by(Movement.timestamp.desc())
-        .limit(limit)
-        .all()
     )
+    q = _apply_filters(
+        q,
+        date_from=date_from,
+        date_to=date_to,
+        tool_type_id=tool_type_id,
+        tool_name=tool_name,
+    )
+    return q.order_by(Movement.timestamp.desc()).limit(limit).all()
 
 
 # ---------------------------------------------------------------------------
@@ -308,17 +323,17 @@ def get_tool_consumption_history(
 # Strategic KPIs
 # ---------------------------------------------------------------------------
 
-def get_avg_tool_lifespan(db: Session) -> float:
+def get_avg_tool_lifespan(db: Session, *, tool_type_id=None,
+                          tool_name=None) -> float:
     """Average lifespan (hours) across tools that have it set (> 0)."""
-    val = (
-        db.query(func.avg(Tool.avg_lifespan_hours))
-        .filter(Tool.avg_lifespan_hours > 0)
-        .scalar()
-    )
+    q = db.query(func.avg(Tool.avg_lifespan_hours)).filter(Tool.avg_lifespan_hours > 0)
+    q = _apply_tool_filters(q, tool_type_id=tool_type_id, tool_name=tool_name)
+    val = q.scalar()
     return round(val, 1) if val else 0.0
 
 
-def get_capital_tied_idle(db: Session, days: int = 90) -> float:
+def get_capital_tied_idle(db: Session, days: int = 90, *, tool_type_id=None,
+                          tool_name=None) -> float:
     """Total R$ value (unit_cost × current_stock) of idle tools."""
     cutoff = datetime.utcnow() - timedelta(days=days)
     active_ids = (
@@ -327,61 +342,84 @@ def get_capital_tied_idle(db: Session, days: int = 90) -> float:
         .distinct()
         .subquery()
     )
-    val = (
+    q = (
         db.query(func.sum(Tool.unit_cost * Tool.current_stock))
         .filter(~Tool.id.in_(db.query(active_ids.c.tool_id)))
         .filter(Tool.current_stock > 0)
-        .scalar()
     )
+    q = _apply_tool_filters(q, tool_type_id=tool_type_id, tool_name=tool_name)
+    val = q.scalar()
     return round(val, 2) if val else 0.0
 
 
-def get_critical_availability(db: Session) -> dict:
+def get_critical_availability(db: Session, *, tool_type_id=None,
+                              tool_name=None) -> dict:
     """Count of critical tools vs how many are at healthy stock."""
-    total = db.query(func.count(Tool.id)).filter(Tool.is_critical == 1).scalar() or 0
-    ok = (
+    q_total = db.query(func.count(Tool.id)).filter(Tool.is_critical == 1)
+    q_total = _apply_tool_filters(q_total, tool_type_id=tool_type_id, tool_name=tool_name)
+    total = q_total.scalar() or 0
+
+    q_ok = (
         db.query(func.count(Tool.id))
         .filter(Tool.is_critical == 1, Tool.current_stock >= Tool.min_stock)
-        .scalar() or 0
     )
+    q_ok = _apply_tool_filters(q_ok, tool_type_id=tool_type_id, tool_name=tool_name)
+    ok = q_ok.scalar() or 0
     return {"total": total, "ok": ok, "pct": round(ok / total * 100, 1) if total else 100.0}
 
 
 def get_high_maintenance_tools(db: Session, months: int = 6,
-                               threshold: int = 10) -> list[dict]:
+                               threshold: int = 10, *, date_from=None,
+                               date_to=None, tool_type_id=None,
+                               tool_name=None) -> list[dict]:
     """Tools with more than *threshold* OUT movements in the last *months* months."""
-    cutoff = datetime.utcnow() - timedelta(days=months * 30)
-    rows = (
+    cutoff = date_from or (datetime.utcnow() - timedelta(days=months * 30))
+    q = (
         db.query(
             Tool.id, Tool.name,
             func.sum(Movement.quantity).label("total_out"),
         )
         .join(Movement, Movement.tool_id == Tool.id)
         .filter(Movement.movement_type == "OUT", Movement.timestamp >= cutoff)
-        .group_by(Tool.id, Tool.name)
-        .having(func.sum(Movement.quantity) >= threshold)
-        .order_by(func.sum(Movement.quantity).desc())
-        .all()
     )
+    if date_to:
+        q = q.filter(Movement.timestamp < date_to + timedelta(days=1))
+    q = _apply_tool_filters(q, tool_type_id=tool_type_id, tool_name=tool_name)
+    rows = (q.group_by(Tool.id, Tool.name)
+             .having(func.sum(Movement.quantity) >= threshold)
+             .order_by(func.sum(Movement.quantity).desc())
+             .all())
     return [{"id": r.id, "name": r.name, "total_out": int(r.total_out)} for r in rows]
 
 
-def get_rarely_used_tools(db: Session, months: int = 6) -> list[dict]:
+def get_rarely_used_tools(db: Session, months: int = 6, *, date_from=None,
+                          date_to=None, tool_type_id=None,
+                          tool_name=None) -> list[dict]:
     """Tools with stock > 0 but zero OUT movements in the last *months* months.
     Candidate for obsolescence review."""
-    cutoff = datetime.utcnow() - timedelta(days=months * 30)
+    cutoff = date_from or (datetime.utcnow() - timedelta(days=months * 30))
     active_ids = (
         db.query(Movement.tool_id)
-        .filter(Movement.movement_type == "OUT", Movement.timestamp >= cutoff)
+        .filter(Movement.movement_type == "OUT")
+    )
+    active_ids = _apply_filters(
+        active_ids,
+        date_from=cutoff,
+        date_to=date_to,
+        tool_type_id=tool_type_id,
+        tool_name=tool_name,
+    )
+    active_ids = (
+        active_ids
         .distinct()
         .subquery()
     )
-    tools = (
-        db.query(Tool)
-        .filter(Tool.current_stock > 0, ~Tool.id.in_(db.query(active_ids.c.tool_id)))
-        .order_by(Tool.name)
-        .all()
+    q = db.query(Tool).filter(
+        Tool.current_stock > 0,
+        ~Tool.id.in_(db.query(active_ids.c.tool_id)),
     )
+    q = _apply_tool_filters(q, tool_type_id=tool_type_id, tool_name=tool_name)
+    tools = q.order_by(Tool.name).all()
     return [
         {"id": t.id, "name": t.name, "current_stock": t.current_stock,
          "unit_cost": t.unit_cost, "value": round(t.unit_cost * t.current_stock, 2),
@@ -390,31 +428,37 @@ def get_rarely_used_tools(db: Session, months: int = 6) -> list[dict]:
     ]
 
 
-def get_monthly_cost(db: Session, months: int = 12) -> list[dict]:
+def get_monthly_cost(db: Session, months: int = 12, *, date_from=None,
+                     date_to=None, tool_type_id=None,
+                     tool_name=None) -> list[dict]:
     """Monthly cost of consumed tools (OUT qty × movement unit_cost)."""
-    cutoff = datetime.utcnow() - timedelta(days=months * 30)
-    rows = (
+    cutoff = date_from or (datetime.utcnow() - timedelta(days=months * 30))
+    q = (
         db.query(
             extract("year", Movement.timestamp).label("year"),
             extract("month", Movement.timestamp).label("month"),
             func.sum(Movement.quantity * func.coalesce(Movement.unit_cost, 0)).label("cost"),
         )
-        .filter(Movement.movement_type == "OUT", Movement.timestamp >= cutoff)
-        .group_by("year", "month")
-        .order_by("year", "month")
-        .all()
+        .filter(Movement.movement_type == "OUT")
     )
+    q = _apply_filters(
+        q,
+        date_from=cutoff,
+        date_to=date_to,
+        tool_type_id=tool_type_id,
+        tool_name=tool_name,
+    )
+    rows = q.group_by("year", "month").order_by("year", "month").all()
     return [{"year": int(r.year), "month": int(r.month),
              "cost": round(float(r.cost or 0), 2)} for r in rows]
 
 
-def get_total_stock_value(db: Session) -> float:
+def get_total_stock_value(db: Session, *, tool_type_id=None,
+                          tool_name=None) -> float:
     """Total value of all stock (unit_cost × current_stock)."""
-    val = (
-        db.query(func.sum(Tool.unit_cost * Tool.current_stock))
-        .filter(Tool.current_stock > 0)
-        .scalar()
-    )
+    q = db.query(func.sum(Tool.unit_cost * Tool.current_stock)).filter(Tool.current_stock > 0)
+    q = _apply_tool_filters(q, tool_type_id=tool_type_id, tool_name=tool_name)
+    val = q.scalar()
     return round(val, 2) if val else 0.0
 
 

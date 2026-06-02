@@ -1,15 +1,7 @@
 {% extends "base.html" %}
 {% set active_page = "financials" %}
-{% set dashboard_url = '/financials' ~ ('?' ~ financial_nav_query if financial_nav_query else '') %}
-{% set financial_table_url = '/financials/table' ~ ('?' ~ financial_nav_query if financial_nav_query else '') %}
 
 {% block title %}Financeiro – Almoxarifado de Ferramentas{% endblock %}
-{% block topbar_nav %}
-<div class="topbar-local-nav" aria-label="Navegação da área financeira">
-    <a href="{{ dashboard_url }}" class="topbar-local-link {% if active_financial_view == 'dashboard' %}active{% endif %}">Dashboard</a>
-    <a href="{{ financial_table_url }}" class="topbar-local-link {% if active_financial_view == 'table' %}active{% endif %}">Tabela financeira</a>
-</div>
-{% endblock %}
 {% block topbar_title %}Visão financeira e custos{% endblock %}
 
 {% block content %}
@@ -33,22 +25,20 @@
             Entenda quem puxou o custo do período, como o preço médio de compra está se comportando e quais ferramentas tiveram maior variação de preço.
         </p>
         <div class="dashboard-hero-chips">
-            <span class="dashboard-chip">
+            <span class="dashboard-chip" id="financialWindowChip">
                 <i class="bi bi-calendar3"></i>
-                {{ window_start }} até {{ window_end }}
+                <span id="financialWindowChipText">{{ window_start }} até {{ window_end }}</span>
             </span>
-            <span class="dashboard-chip">
+            <span class="dashboard-chip" id="financialPrevWindowChip">
                 <i class="bi bi-calendar2-week"></i>
-                vs. {{ prev_window_start }} até {{ prev_window_end }}
+                <span id="financialPrevWindowChipText">vs. {{ prev_window_start }} até {{ prev_window_end }}</span>
             </span>
-            <span class="dashboard-chip">
-                <i class="bi bi-tags"></i>{{ selected_type.name }}
+            <span class="dashboard-chip" id="financialTypeChip">
+                <i class="bi bi-tags"></i><span id="financialTypeChipText">{{ selected_type.name }}</span>
             </span>
-            {% if f_tool_name %}
-            <span class="dashboard-chip">
-                <i class="bi bi-search"></i>{{ f_tool_name }}
+            <span class="dashboard-chip {% if not f_tool_name %}d-none{% endif %}" id="financialToolChip">
+                <i class="bi bi-search"></i><span id="financialToolChipText">{{ f_tool_name }}</span>
             </span>
-            {% endif %}
         </div>
     </div>
 
@@ -102,12 +92,16 @@
                    placeholder="Buscar por nome...">
         </div>
         <div class="col-12 col-xl-auto d-flex flex-wrap gap-2 dashboard-filter-actions">
-            <button type="submit" class="btn btn-primary btn-sm">
-                <i class="bi bi-funnel me-1"></i>Filtrar
+            <button type="submit" class="btn btn-primary btn-sm" id="financialFilterSubmit">
+                <span class="spinner-border spinner-border-sm me-1 d-none" id="financialFilterSpinner" role="status" aria-hidden="true"></span>
+                <i class="bi bi-funnel me-1" id="financialFilterSubmitIcon"></i>Filtrar
             </button>
             <a href="/financials" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-x-lg me-1"></i>Limpar
             </a>
+        </div>
+        <div class="col-12">
+            <div id="financialFilterError" class="alert alert-danger py-2 px-3 mb-0 d-none" role="alert" aria-live="polite"></div>
         </div>
     </form>
 </section>
@@ -192,7 +186,7 @@
         <div class="card dashboard-panel h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-cash-coin me-1"></i>Custo Mensal Consumido (R$)</span>
-                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalCostExpand">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalCostExpand" aria-label="Expandir gráfico de custo mensal consumido">
                     <i class="bi bi-arrows-fullscreen"></i>
                 </button>
             </div>
@@ -324,24 +318,14 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body">
-                <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-                    <input type="text" id="modalCostFilterName"
-                           class="form-control form-control-sm"
-                           style="max-width: 16rem;"
-                           placeholder="Filtrar por ferramenta...">
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
-                                id="modalCostTypeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-tags me-1"></i><span id="modalCostTypeLabel">Todos os tipos</span>
-                        </button>
-                        <ul class="dropdown-menu" aria-labelledby="modalCostTypeDropdown">
-                            <li><a class="dropdown-item modal-cost-type-item" href="#" data-value="0">Todos os tipos</a></li>
-                            {% for tt in tool_types %}
-                            <li><a class="dropdown-item modal-cost-type-item" href="#" data-value="{{ tt.id }}">{{ tt.name }}</a></li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    <span id="modalCostSpinner" class="spinner-border spinner-border-sm text-secondary d-none" role="status"></span>
+                <div class="financial-modal-summary mb-3">
+                    <div class="financial-modal-summary-title" id="modalCostScopeText">Período: {{ window_start }} até {{ window_end }}</div>
+                    <div class="financial-modal-summary-detail" id="modalCostScopeDetail">Mesmo recorte atual do dashboard.</div>
+                </div>
+                <div id="modalCostEmpty" class="financial-modal-empty d-none" role="status" aria-live="polite">
+                    <i class="bi bi-bar-chart-line"></i>
+                    <strong>Nenhum dado para esse recorte.</strong>
+                    <span>O recorte atual do dashboard não tem série mensal disponível para exibir nesta expansão.</span>
                 </div>
                 <canvas id="chartFinCostModal"></canvas>
             </div>
@@ -394,7 +378,15 @@ const PALETTE = [
 const primaryFill = hexToRgba(accentBlue, 0.72);
 const warningFill = hexToRgba(accentYellow, 0.18);
 
-const PAYLOAD = {{ payload | tojson }};
+const clonePayload = (value) => JSON.parse(JSON.stringify(value));
+const INITIAL_PAYLOAD = {{ payload | tojson }};
+let currentFinancialPayload = clonePayload(INITIAL_PAYLOAD);
+let currentFinancialFilters = {
+    date_from: {{ f_date_from | tojson }},
+    date_to: {{ f_date_to | tojson }},
+    tool_type_id: Number({{ f_tool_type_id | tojson }}) || 0,
+    tool_name: {{ f_tool_name | tojson }},
+};
 
 const brl = (v) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
@@ -406,10 +398,10 @@ let chartCost = null;
     chartCost = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: PAYLOAD.cost_series.labels,
+            labels: currentFinancialPayload.cost_series.labels,
             datasets: [{
                 label: 'Custo (R$)',
-                data: PAYLOAD.cost_series.data,
+                data: currentFinancialPayload.cost_series.data,
                 borderColor: accentBlue,
                 backgroundColor: warningFill,
                 fill: true,
@@ -440,10 +432,10 @@ let chartShare = null;
     chartShare = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: PAYLOAD.share.labels,
+            labels: currentFinancialPayload.share.labels,
             datasets: [{
                 label: 'Participação (%)',
-                data: PAYLOAD.share.pcts,
+                data: currentFinancialPayload.share.pcts,
                 backgroundColor: PALETTE,
                 borderRadius: 4,
             }]
@@ -456,7 +448,7 @@ let chartShare = null;
                 tooltip: {
                     callbacks: {
                         label: (c) => {
-                            const cost = PAYLOAD.share.costs[c.dataIndex] || 0;
+                            const cost = currentFinancialPayload.share.costs[c.dataIndex] || 0;
                             return `${c.parsed.x.toFixed(2)}% (${brl(cost)})`;
                         }
                     }
@@ -477,10 +469,10 @@ let chartPrice = null;
     chartPrice = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: PAYLOAD.price_series.labels,
+            labels: currentFinancialPayload.price_series.labels,
             datasets: [{
                 label: 'Preço médio (R$)',
-                data: PAYLOAD.price_series.data,
+                data: currentFinancialPayload.price_series.data,
                 borderColor: accentTeal,
                 backgroundColor: hexToRgba(accentTeal, 0.18),
                 fill: true,
@@ -507,9 +499,103 @@ let chartPrice = null;
 (function () {
     const form = document.getElementById('filterForm');
     if (!form) return;
+    const submitButton = document.getElementById('financialFilterSubmit');
+    const submitSpinner = document.getElementById('financialFilterSpinner');
+    const submitIcon = document.getElementById('financialFilterSubmitIcon');
+    const errorBox = document.getElementById('financialFilterError');
 
     const fmtPct = (v, sign) => (sign && v > 0 ? '+' : '') + Number(v || 0).toFixed(1) + '%';
     const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    const normalizeFilters = (filters) => ({
+        date_from: String(filters?.date_from || ''),
+        date_to: String(filters?.date_to || ''),
+        tool_type_id: Number(filters?.tool_type_id || 0) || 0,
+        tool_name: String(filters?.tool_name || '').trim(),
+    });
+    const sameFilters = (left, right) => (
+        String(left.date_from || '') === String(right.date_from || '')
+        && String(left.date_to || '') === String(right.date_to || '')
+        && Number(left.tool_type_id || 0) === Number(right.tool_type_id || 0)
+        && String(left.tool_name || '') === String(right.tool_name || '')
+    );
+    const getToolTypeLabel = (toolTypeId) => {
+        const select = form.querySelector('select[name="tool_type_id"]');
+        if (!select || !toolTypeId) return 'Todos os tipos';
+        const option = Array.from(select.options).find((item) => Number(item.value) === Number(toolTypeId));
+        return option ? option.text.trim() : 'Todos os tipos';
+    };
+    const readFiltersFromForm = () => {
+        const data = new FormData(form);
+        return normalizeFilters({
+            date_from: String(data.get('date_from') || ''),
+            date_to: String(data.get('date_to') || ''),
+            tool_type_id: Number(data.get('tool_type_id') || 0) || 0,
+            tool_name: String(data.get('tool_name') || '').trim(),
+        });
+    };
+    const readFiltersFromUrl = () => {
+        const params = new URLSearchParams(window.location.search);
+        return normalizeFilters({
+            date_from: params.get('date_from') || '',
+            date_to: params.get('date_to') || '',
+            tool_type_id: params.get('tool_type_id') || 0,
+            tool_name: params.get('tool_name') || '',
+        });
+    };
+    const populateFormFilters = (filters) => {
+        const nextFilters = normalizeFilters(filters);
+        const dateFromInput = form.querySelector('input[name="date_from"]');
+        const dateToInput = form.querySelector('input[name="date_to"]');
+        const toolTypeInput = form.querySelector('select[name="tool_type_id"]');
+        const toolNameInput = form.querySelector('input[name="tool_name"]');
+        if (dateFromInput) dateFromInput.value = nextFilters.date_from;
+        if (dateToInput) dateToInput.value = nextFilters.date_to;
+        if (toolTypeInput) toolTypeInput.value = String(nextFilters.tool_type_id || 0);
+        if (toolNameInput) toolNameInput.value = nextFilters.tool_name;
+    };
+    const toQueryParams = (filters) => {
+        const params = new URLSearchParams();
+        if (filters.date_from) params.set('date_from', filters.date_from);
+        if (filters.date_to) params.set('date_to', filters.date_to);
+        if (filters.tool_type_id) params.set('tool_type_id', String(filters.tool_type_id));
+        if (filters.tool_name) params.set('tool_name', filters.tool_name);
+        return params;
+    };
+    const syncHistory = (filters, mode = 'push') => {
+        const query = toQueryParams(filters).toString();
+        const nextUrl = `/financials${query ? `?${query}` : ''}`;
+        const method = mode === 'replace' ? 'replaceState' : 'pushState';
+        window.history[method]({ financialFilters: filters }, '', nextUrl);
+    };
+    const setBusy = (isBusy) => {
+        if (submitButton) submitButton.disabled = isBusy;
+        if (submitSpinner) submitSpinner.classList.toggle('d-none', !isBusy);
+        if (submitIcon) submitIcon.classList.toggle('d-none', isBusy);
+    };
+    const showError = (message) => {
+        if (!errorBox) return;
+        errorBox.textContent = message;
+        errorBox.classList.remove('d-none');
+    };
+    const clearError = () => {
+        if (!errorBox) return;
+        errorBox.textContent = '';
+        errorBox.classList.add('d-none');
+    };
+    const syncHeroChips = (filters, payload) => {
+        const windowInfo = payload.window || {};
+        setText('financialWindowChipText', `${windowInfo.current_start || ''} até ${windowInfo.current_end || ''}`.trim());
+        setText('financialPrevWindowChipText', `vs. ${windowInfo.previous_start || ''} até ${windowInfo.previous_end || ''}`.trim());
+        setText('financialTypeChipText', getToolTypeLabel(filters.tool_type_id));
+        setText('financialToolChipText', filters.tool_name || '');
+        const toolChip = document.getElementById('financialToolChip');
+        if (toolChip) toolChip.classList.toggle('d-none', !filters.tool_name);
+    };
+    const applyDashboardPayload = (payload, filters) => {
+        currentFinancialPayload = clonePayload(payload);
+        currentFinancialFilters = normalizeFilters(filters);
+
+        syncHeroChips(currentFinancialFilters, currentFinancialPayload);
 
     const renderImpactRow = (r, up) => `
         <tr>
@@ -522,66 +608,122 @@ let chartPrice = null;
             <td class="text-end ${up ? 'text-danger' : 'text-success'}">${fmtPct(r.delta_pct, up)}</td>
         </tr>`;
 
-    form.addEventListener('submit', function (e) {
+        // KPIs
+        setText('kpi-total-cost', brl(currentFinancialPayload.kpis.total_cost));
+        setText('kpi-leader-share', currentFinancialPayload.kpis.leader_name ? Number(currentFinancialPayload.kpis.leader_share_pct).toFixed(1) + '%' : '—');
+        setText('kpi-leader-name', currentFinancialPayload.kpis.leader_name || 'Sem dados de custo no período.');
+        setText('kpi-avg-price', brl(currentFinancialPayload.kpis.avg_purchase_price));
+        setText('kpi-recent-variation', fmtPct(currentFinancialPayload.kpis.avg_recent_variation_pct, true));
+        const rf = document.getElementById('kpi-rising-falling');
+        if (rf) rf.innerHTML = `<span class="text-danger">${currentFinancialPayload.kpis.rising_count} subindo</span> · <span class="text-success">${currentFinancialPayload.kpis.falling_count} caindo</span>`;
+        setText('kpi-delta-total-pct', (currentFinancialPayload.kpis.delta_total_pct > 0 ? '+' : '') + Number(currentFinancialPayload.kpis.delta_total_pct).toFixed(1) + '%');
+        setText('kpi-delta-total-abs', (currentFinancialPayload.kpis.delta_total >= 0 ? '+' : '') + brl(currentFinancialPayload.kpis.delta_total) + ' em custo consumido.');
+
+        // Charts
+        if (chartCost) {
+            chartCost.data.labels = currentFinancialPayload.cost_series.labels;
+            chartCost.data.datasets[0].data = currentFinancialPayload.cost_series.data;
+            chartCost.update();
+        }
+        if (chartShare) {
+            chartShare.data.labels = currentFinancialPayload.share.labels;
+            chartShare.data.datasets[0].data = currentFinancialPayload.share.pcts;
+            chartShare.update();
+        }
+        if (chartPrice) {
+            chartPrice.data.labels = currentFinancialPayload.price_series.labels;
+            chartPrice.data.datasets[0].data = currentFinancialPayload.price_series.data;
+            chartPrice.update();
+        }
+
+        // Tables
+        const tbUp = document.getElementById('tbody-impact-up');
+        if (tbUp) tbUp.innerHTML = currentFinancialPayload.impact.top_up.length
+            ? currentFinancialPayload.impact.top_up.map((row) => renderImpactRow(row, true)).join('')
+            : '<tr><td colspan="5" class="text-center text-muted py-3">Nenhuma ferramenta com alta significativa</td></tr>';
+
+        const tbDown = document.getElementById('tbody-impact-down');
+        if (tbDown) tbDown.innerHTML = currentFinancialPayload.impact.top_down.length
+            ? currentFinancialPayload.impact.top_down.map((row) => renderImpactRow(row, false)).join('')
+            : '<tr><td colspan="5" class="text-center text-muted py-3">Nenhuma ferramenta com queda significativa</td></tr>';
+    };
+
+    const requestDashboardUpdate = async (filters, historyMode = null) => {
+        const nextFilters = normalizeFilters(filters);
+        const params = toQueryParams(nextFilters).toString();
+        clearError();
+        setBusy(true);
+
+        try {
+            const response = await fetch(`/api/financials${params ? `?${params}` : ''}`);
+            if (!response.ok) {
+                throw new Error(`Não foi possível atualizar o dashboard (${response.status}).`);
+            }
+            const payload = await response.json();
+            applyDashboardPayload(payload, nextFilters);
+            if (historyMode) {
+                syncHistory(nextFilters, historyMode);
+            }
+            return true;
+        } catch (err) {
+            console.error('Filter error:', err);
+            showError(err instanceof Error ? err.message : 'Não foi possível atualizar o dashboard.');
+            return false;
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    currentFinancialFilters = normalizeFilters(currentFinancialFilters);
+    applyDashboardPayload(currentFinancialPayload, currentFinancialFilters);
+    syncHistory(currentFinancialFilters, 'replace');
+
+    form.addEventListener('submit', async function (e) {
         e.preventDefault();
-        const params = new URLSearchParams(new FormData(form)).toString();
-        fetch('/api/financials?' + params)
-            .then(r => r.json())
-            .then(d => {
-                // KPIs
-                setText('kpi-total-cost', brl(d.kpis.total_cost));
-                setText('kpi-leader-share', d.kpis.leader_name ? Number(d.kpis.leader_share_pct).toFixed(1) + '%' : '—');
-                setText('kpi-leader-name', d.kpis.leader_name || 'Sem dados de custo no período.');
-                setText('kpi-avg-price', brl(d.kpis.avg_purchase_price));
-                setText('kpi-recent-variation', fmtPct(d.kpis.avg_recent_variation_pct, true));
-                const rf = document.getElementById('kpi-rising-falling');
-                if (rf) rf.innerHTML = `<span class="text-danger">${d.kpis.rising_count} subindo</span> · <span class="text-success">${d.kpis.falling_count} caindo</span>`;
-                setText('kpi-delta-total-pct', (d.kpis.delta_total_pct > 0 ? '+' : '') + Number(d.kpis.delta_total_pct).toFixed(1) + '%');
-                setText('kpi-delta-total-abs', (d.kpis.delta_total >= 0 ? '+' : '') + brl(d.kpis.delta_total) + ' em custo consumido.');
+        const nextFilters = readFiltersFromForm();
+        if (sameFilters(nextFilters, currentFinancialFilters)) {
+            clearError();
+            return;
+        }
+        await requestDashboardUpdate(nextFilters, 'push');
+    });
 
-                // Charts
-                if (chartCost) {
-                    chartCost.data.labels = d.cost_series.labels;
-                    chartCost.data.datasets[0].data = d.cost_series.data;
-                    chartCost.update();
-                }
-                if (chartShare) {
-                    chartShare.data.labels = d.share.labels;
-                    chartShare.data.datasets[0].data = d.share.pcts;
-                    // refresh closures used by tooltip
-                    PAYLOAD.share.costs = d.share.costs;
-                    PAYLOAD.share.pcts = d.share.pcts;
-                    chartShare.update();
-                }
-                if (chartPrice) {
-                    chartPrice.data.labels = d.price_series.labels;
-                    chartPrice.data.datasets[0].data = d.price_series.data;
-                    chartPrice.update();
-                }
-
-                // Tables
-                const tbUp = document.getElementById('tbody-impact-up');
-                if (tbUp) tbUp.innerHTML = d.impact.top_up.length
-                    ? d.impact.top_up.map(r => renderImpactRow(r, true)).join('')
-                    : '<tr><td colspan="5" class="text-center text-muted py-3">Nenhuma ferramenta com alta significativa</td></tr>';
-
-                const tbDown = document.getElementById('tbody-impact-down');
-                if (tbDown) tbDown.innerHTML = d.impact.top_down.length
-                    ? d.impact.top_down.map(r => renderImpactRow(r, false)).join('')
-                    : '<tr><td colspan="5" class="text-center text-muted py-3">Nenhuma ferramenta com queda significativa</td></tr>';
-            })
-            .catch(err => console.error('Filter error:', err));
+    window.addEventListener('popstate', async (event) => {
+        const stateFilters = event.state?.financialFilters;
+        const nextFilters = normalizeFilters(stateFilters || readFiltersFromUrl());
+        if (sameFilters(nextFilters, currentFinancialFilters)) {
+            populateFormFilters(nextFilters);
+            clearError();
+            return;
+        }
+        populateFormFilters(nextFilters);
+        await requestDashboardUpdate(nextFilters);
     });
 })();
 
 /* ---- Modal: expand cost chart ---- */
 (function () {
     let chartCostModal = null;
-    let modalTypeId = 0;
-    let modalDebounce = null;
 
     const modalEl = document.getElementById('modalCostExpand');
     if (!modalEl) return;
+    const modalEmpty = document.getElementById('modalCostEmpty');
+    const modalCanvas = document.getElementById('chartFinCostModal');
+    const setModalEmpty = (isEmpty) => {
+        if (modalEmpty) modalEmpty.classList.toggle('d-none', !isEmpty);
+        if (modalCanvas) modalCanvas.classList.toggle('d-none', isEmpty);
+    };
+    const syncModalSummary = (payload = currentFinancialPayload) => {
+        const windowInfo = payload.window || currentFinancialPayload.window || {};
+        const scopeText = document.getElementById('modalCostScopeText');
+        const scopeDetail = document.getElementById('modalCostScopeDetail');
+        if (scopeText) {
+            scopeText.textContent = `Periodo: ${windowInfo.current_start || 'sem data'} ate ${windowInfo.current_end || 'sem data'}`;
+        }
+        if (scopeDetail) {
+            scopeDetail.textContent = 'Mesmo recorte atual do dashboard.';
+        }
+    };
 
     const buildChart = (labels, data) => {
         const ctx = document.getElementById('chartFinCostModal');
@@ -615,58 +757,25 @@ let chartPrice = null;
             }
         });
     };
-
-    const fetchAndRender = () => {
-        const spinner = document.getElementById('modalCostSpinner');
-        const nameVal = (document.getElementById('modalCostFilterName') || {}).value || '';
-        // inherit date range from main filter form
-        const mainForm = document.getElementById('filterForm');
-        const params = new URLSearchParams();
-        if (mainForm) {
-            const fd = new FormData(mainForm);
-            for (const [k, v] of fd.entries()) params.set(k, v);
+    const renderModalPayload = (payload) => {
+        syncModalSummary(payload);
+        const series = payload.cost_series || { labels: [], data: [] };
+        if (!series.labels.length) {
+            if (chartCostModal) { chartCostModal.destroy(); chartCostModal = null; }
+            setModalEmpty(true);
+            return;
         }
-        if (nameVal) params.set('tool_name', nameVal);
-        if (modalTypeId) params.set('tool_type_id', String(modalTypeId));
-        if (spinner) spinner.classList.remove('d-none');
-        fetch('/api/financials?' + params.toString())
-            .then(r => r.json())
-            .then(d => { buildChart(d.cost_series.labels, d.cost_series.data); })
-            .catch(err => console.error('Modal filter error:', err))
-            .finally(() => { if (spinner) spinner.classList.add('d-none'); });
+        setModalEmpty(false);
+        buildChart(series.labels, series.data);
     };
 
     modalEl.addEventListener('shown.bs.modal', function () {
-        modalTypeId = 0;
-        const lbl = document.getElementById('modalCostTypeLabel');
-        if (lbl) lbl.textContent = 'Todos os tipos';
-        const nameInput = document.getElementById('modalCostFilterName');
-        if (nameInput) nameInput.value = '';
-        buildChart(PAYLOAD.cost_series.labels, PAYLOAD.cost_series.data);
+        renderModalPayload(currentFinancialPayload);
     });
 
     modalEl.addEventListener('hidden.bs.modal', function () {
         if (chartCostModal) { chartCostModal.destroy(); chartCostModal = null; }
-    });
-
-    // name input: debounced fetch
-    const nameInput = document.getElementById('modalCostFilterName');
-    if (nameInput) {
-        nameInput.addEventListener('input', () => {
-            clearTimeout(modalDebounce);
-            modalDebounce = setTimeout(fetchAndRender, 420);
-        });
-    }
-
-    // type dropdown items
-    document.querySelectorAll('.modal-cost-type-item').forEach(item => {
-        item.addEventListener('click', function (e) {
-            e.preventDefault();
-            modalTypeId = Number(this.dataset.value) || 0;
-            const lbl = document.getElementById('modalCostTypeLabel');
-            if (lbl) lbl.textContent = this.textContent;
-            fetchAndRender();
-        });
+        setModalEmpty(false);
     });
 })();
 </script>

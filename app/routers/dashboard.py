@@ -37,6 +37,9 @@ MONTH_NAMES = [
     "Jul", "Ago", "Set", "Out", "Nov", "Dez",
 ]
 
+DASHBOARD_TREND_MONTHS = 12
+DASHBOARD_PORTFOLIO_MONTHS = 6
+
 
 def _parse_date(value: str | None) -> date | None:
     if not value:
@@ -63,21 +66,27 @@ def dashboard(
     tt_id = tool_type_id if tool_type_id else None
     t_name = tool_name.strip() if tool_name else None
 
-    # Shared filter kwargs
-    flt = dict(date_from=d_from, date_to=d_to,
-               tool_type_id=tt_id, tool_name=t_name)
+    movement_flt = dict(
+        date_from=d_from,
+        date_to=d_to,
+        tool_type_id=tt_id,
+        tool_name=t_name,
+    )
+    tool_flt = dict(tool_type_id=tt_id, tool_name=t_name)
+    has_period_filters = bool(d_from or d_to)
+    has_tool_filters = bool(tt_id or t_name)
 
     # ---- KPI totals ----
-    consumption_period = get_total_consumption_period(db, **flt)
-    movements_period = get_total_movements_period(db, **flt)
-    tools_below = get_tools_below_minimum(db)
+    consumption_period = get_total_consumption_period(db, **movement_flt)
+    movements_period = get_total_movements_period(db, **movement_flt)
+    tools_below = get_tools_below_minimum(db, **tool_flt)
     total_tools = db.query(Tool).count()
 
     # ---- Charts data ----
-    monthly = get_monthly_consumption(db, **flt)
-    in_out = get_monthly_in_out(db, **flt)
-    top_consumed = get_top_consumed_tools(db, **flt)
-    stock_by_type = get_stock_by_type(db)
+    monthly = get_monthly_consumption(db, months=DASHBOARD_TREND_MONTHS, **movement_flt)
+    in_out = get_monthly_in_out(db, months=DASHBOARD_TREND_MONTHS, **movement_flt)
+    top_consumed = get_top_consumed_tools(db, **movement_flt)
+    stock_by_type = get_stock_by_type(db, **tool_flt)
 
     # Format chart labels
     chart_labels = [f"{MONTH_NAMES[m['month']]} {m['year']}" for m in monthly]
@@ -94,8 +103,8 @@ def dashboard(
     sbt_data = [s["total_stock"] for s in stock_by_type]
 
     # ---- Tables ----
-    idle_tools = get_idle_tools(db, days=idle_days)
-    recent = get_recent_movements(db, limit=10)
+    idle_tools = get_idle_tools(db, days=idle_days, **tool_flt)
+    recent = get_recent_movements(db, limit=10, **movement_flt)
 
     # Approaching minimum
     approaching = [
@@ -104,16 +113,12 @@ def dashboard(
     ]
 
     # ---- Strategic KPIs ----
-    avg_lifespan = get_avg_tool_lifespan(db)
-    capital_idle = get_capital_tied_idle(db, days=idle_days)
-    critical_avail = get_critical_availability(db)
-    high_maint = get_high_maintenance_tools(db)
-    rarely_used = get_rarely_used_tools(db)
-    total_stock_value = get_total_stock_value(db)
-    cost_monthly = get_monthly_cost(db)
-
-    cost_labels = [f"{MONTH_NAMES[c['month']]} {c['year']}" for c in cost_monthly]
-    cost_data = [c["cost"] for c in cost_monthly]
+    avg_lifespan = get_avg_tool_lifespan(db, **tool_flt)
+    capital_idle = get_capital_tied_idle(db, days=idle_days, **tool_flt)
+    critical_avail = get_critical_availability(db, **tool_flt)
+    high_maint = get_high_maintenance_tools(db, months=DASHBOARD_PORTFOLIO_MONTHS, **movement_flt)
+    rarely_used = get_rarely_used_tools(db, months=DASHBOARD_PORTFOLIO_MONTHS, **movement_flt)
+    total_stock_value = get_total_stock_value(db, **tool_flt)
 
     # Tool types for the filter dropdown
     tool_types = db.query(ToolType).order_by(ToolType.name).all()
@@ -150,8 +155,6 @@ def dashboard(
             "high_maint": high_maint,
             "rarely_used": rarely_used,
             "total_stock_value": total_stock_value,
-            "cost_labels": cost_labels,
-            "cost_data": cost_data,
             # Filter state (to keep inputs filled)
             "f_date_from": date_from,
             "f_date_to": date_to,
@@ -159,6 +162,10 @@ def dashboard(
             "f_tool_name": tool_name,
             "f_idle_days": idle_days,
             "tool_types": tool_types,
+            "has_period_filters": has_period_filters,
+            "has_tool_filters": has_tool_filters,
+            "dashboard_trend_months": DASHBOARD_TREND_MONTHS,
+            "dashboard_portfolio_months": DASHBOARD_PORTFOLIO_MONTHS,
         },
     )
 
@@ -181,19 +188,24 @@ def api_dashboard(
     tt_id = tool_type_id if tool_type_id else None
     t_name = tool_name.strip() if tool_name else None
 
-    flt = dict(date_from=d_from, date_to=d_to,
-               tool_type_id=tt_id, tool_name=t_name)
+    movement_flt = dict(
+        date_from=d_from,
+        date_to=d_to,
+        tool_type_id=tt_id,
+        tool_name=t_name,
+    )
+    tool_flt = dict(tool_type_id=tt_id, tool_name=t_name)
 
-    consumption_period = get_total_consumption_period(db, **flt)
-    movements_period = get_total_movements_period(db, **flt)
-    tools_below = get_tools_below_minimum(db)
+    consumption_period = get_total_consumption_period(db, **movement_flt)
+    movements_period = get_total_movements_period(db, **movement_flt)
+    tools_below = get_tools_below_minimum(db, **tool_flt)
     total_tools = db.query(Tool).count()
 
-    monthly = get_monthly_consumption(db, **flt)
-    in_out = get_monthly_in_out(db, **flt)
-    top_consumed = get_top_consumed_tools(db, **flt)
-    stock_by_type = get_stock_by_type(db)
-    cost_monthly = get_monthly_cost(db)
+    monthly = get_monthly_consumption(db, months=DASHBOARD_TREND_MONTHS, **movement_flt)
+    in_out = get_monthly_in_out(db, months=DASHBOARD_TREND_MONTHS, **movement_flt)
+    top_consumed = get_top_consumed_tools(db, **movement_flt)
+    stock_by_type = get_stock_by_type(db, **tool_flt)
+    cost_monthly = get_monthly_cost(db, months=DASHBOARD_TREND_MONTHS, **movement_flt)
 
     return JSONResponse({
         "total_tools": total_tools,
@@ -211,10 +223,10 @@ def api_dashboard(
         "sbt_labels": [s["type_name"] for s in stock_by_type],
         "sbt_data": [s["total_stock"] for s in stock_by_type],
         # Strategic
-        "avg_lifespan": get_avg_tool_lifespan(db),
-        "capital_idle": get_capital_tied_idle(db, days=idle_days),
-        "critical_avail": get_critical_availability(db),
-        "total_stock_value": get_total_stock_value(db),
+        "avg_lifespan": get_avg_tool_lifespan(db, **tool_flt),
+        "capital_idle": get_capital_tied_idle(db, days=idle_days, **tool_flt),
+        "critical_avail": get_critical_availability(db, **tool_flt),
+        "total_stock_value": get_total_stock_value(db, **tool_flt),
         "cost_labels": [f"{MONTH_NAMES[c['month']]} {c['year']}" for c in cost_monthly],
         "cost_data": [c["cost"] for c in cost_monthly],
     })

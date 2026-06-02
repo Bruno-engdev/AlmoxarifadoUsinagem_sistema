@@ -8,6 +8,7 @@ from fastapi import APIRouter, Request, Depends, Form, Query, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import case, and_
 
 from app.database import get_db
 from app.models import Tool, ToolType, ToolParameter, Employee, Machine
@@ -47,7 +48,35 @@ def _filtered_tools_query(db: Session, search: str, search_col: str):
                 (Tool.name.ilike(like)) | (ToolType.name.ilike(like))
             )
 
-    return query.order_by(Tool.name)
+    return query
+
+
+_TOOL_SORT_COLUMNS = {
+    "id": Tool.id,
+    "origin_id": Tool.origin_id,
+    "name": Tool.name,
+    "tool_type": ToolType.name,
+    "location": Tool.location,
+    "min_stock": Tool.min_stock,
+    "max_stock": Tool.max_stock,
+    "current_stock": Tool.current_stock,
+    "unit_cost": Tool.unit_cost,
+    "status": case(
+        (Tool.current_stock <= 0, 0),
+        (and_(Tool.current_stock > 0, Tool.current_stock < Tool.min_stock), 1),
+        else_=2,
+    ),
+}
+
+
+def _apply_tools_sort(query, sort_by: str, sort_dir: str):
+    normalized_sort_by = sort_by if sort_by in _TOOL_SORT_COLUMNS else "name"
+    normalized_sort_dir = "desc" if sort_dir == "desc" else "asc"
+
+    sort_column = _TOOL_SORT_COLUMNS[normalized_sort_by]
+    ordered = sort_column.desc() if normalized_sort_dir == "desc" else sort_column.asc()
+    tie_breaker = Tool.id.asc() if normalized_sort_by != "id" else Tool.name.asc()
+    return query.order_by(ordered, tie_breaker), normalized_sort_by, normalized_sort_dir
 
 
 @router.get("/")
@@ -55,17 +84,26 @@ def tools_list(
     request: Request,
     search: str = Query("", alias="search"),
     search_col: str = Query("all", alias="search_col"),
+    sort_by: str = Query("name", alias="sort_by"),
+    sort_dir: str = Query("asc", alias="sort_dir"),
     page: int = Query(1, ge=1),
     per_page: int = Query(25, alias="per_page"),
     db: Session = Depends(get_db),
 ):
     """Display tools table with search and status highlighting."""
-    tools, pagination = paginate_query(
+    tools_query, normalized_sort_by, normalized_sort_dir = _apply_tools_sort(
         _filtered_tools_query(db, search, search_col),
+        sort_by,
+        sort_dir,
+    )
+    tools, pagination = paginate_query(
+        tools_query,
         base_path=request.url.path,
         params={
             "search": search,
             "search_col": search_col,
+            "sort_by": normalized_sort_by,
+            "sort_dir": normalized_sort_dir,
         },
         page=page,
         per_page=per_page,
@@ -84,6 +122,8 @@ def tools_list(
             "machines": machines,
             "search": search,
             "search_col": search_col,
+            "current_sort_by": normalized_sort_by,
+            "current_sort_dir": normalized_sort_dir,
             "page": pagination["page"],
             "per_page": pagination["per_page"],
             "pagination": pagination,
@@ -112,6 +152,8 @@ def export_tools_xlsx(
     request: Request,
     search: str = Query("", alias="search"),
     search_col: str = Query("all", alias="search_col"),
+    sort_by: str = Query("name", alias="sort_by"),
+    sort_dir: str = Query("asc", alias="sort_dir"),
     columns: list[str] = Query(None, alias="columns"),
     db: Session = Depends(get_db),
 ):
@@ -127,7 +169,8 @@ def export_tools_xlsx(
     if not selected:
         selected = _ALL_COLUMN_KEYS
 
-    tools = _filtered_tools_query(db, search, search_col).all()
+    tools_query, _, _ = _apply_tools_sort(_filtered_tools_query(db, search, search_col), sort_by, sort_dir)
+    tools = tools_query.all()
 
     wb = Workbook()
     ws = wb.active
@@ -174,10 +217,13 @@ def print_labels(
     request: Request,
     search: str = Query("", alias="search"),
     search_col: str = Query("all", alias="search_col"),
+    sort_by: str = Query("name", alias="sort_by"),
+    sort_dir: str = Query("asc", alias="sort_dir"),
     db: Session = Depends(get_db),
 ):
     """Render a printable A4 page with labels (4×13 grid) for filtered tools."""
-    tools = _filtered_tools_query(db, search, search_col).all()
+    tools_query, _, _ = _apply_tools_sort(_filtered_tools_query(db, search, search_col), sort_by, sort_dir)
+    tools = tools_query.all()
     labels = [{"origin_id": t.origin_id or "", "name": t.name, "location": t.location or ""} for t in tools]
 
     # Chunk into pages of 52 labels (4 cols × 13 rows)

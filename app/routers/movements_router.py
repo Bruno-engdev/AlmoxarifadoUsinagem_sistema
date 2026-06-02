@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 
 from fastapi import APIRouter, Request, Depends, Query, Form
 from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from datetime import datetime, timedelta
 
 from app.database import get_db
@@ -22,6 +22,32 @@ from app.services.movements import (
 )
 
 router = APIRouter(prefix="/movements", tags=["movements"], dependencies=[Depends(require_login)])
+
+
+def _apply_movement_sort(query, category: str, sort_by: str, sort_dir: str):
+    counterparty_column = Employee.name if category == "EMPRESTIMO" else Machine.name
+    sort_columns = {
+        "timestamp": Movement.timestamp,
+        "tool": Tool.name,
+        "counterparty": counterparty_column,
+        "movement_type": Movement.movement_type,
+        "quantity": Movement.quantity,
+        "unit_cost": Movement.unit_cost,
+        "total_cost": Movement.quantity * Movement.unit_cost,
+        "loan_status": Movement.loan_status,
+        "return_timestamp": Movement.return_timestamp,
+    }
+
+    normalized_sort_by = sort_by if sort_by in sort_columns else "timestamp"
+    normalized_sort_dir = "asc" if sort_dir == "asc" else "desc"
+    sort_column = sort_columns[normalized_sort_by]
+    order_clause = sort_column.asc() if normalized_sort_dir == "asc" else sort_column.desc()
+
+    return (
+        query.order_by(order_clause, Movement.timestamp.desc(), Movement.id.desc()),
+        normalized_sort_by,
+        normalized_sort_dir,
+    )
 
 
 def _parse_form_int(form, key: str) -> int | None:
@@ -78,6 +104,8 @@ def movements_list(
     request: Request,
     tool_id: int = Query(0),
     sort: str = Query("desc"),
+    sort_by: str = Query("timestamp"),
+    sort_dir: str = Query("", alias="sort_dir"),
     category: str = Query("EMPRESTIMO"),
     search: str = Query(""),
     search_col: str = Query("all"),
@@ -89,7 +117,17 @@ def movements_list(
     error: str = Query(""),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Movement)
+    query = (
+        db.query(Movement)
+        .join(Tool, Movement.tool_id == Tool.id)
+        .outerjoin(Employee, Movement.employee_id == Employee.id)
+        .outerjoin(Machine, Movement.machine_id == Machine.id)
+        .options(
+            joinedload(Movement.tool),
+            joinedload(Movement.employee),
+            joinedload(Movement.machine),
+        )
+    )
 
     # Filter by category
     category = category.upper()
@@ -118,11 +156,11 @@ def movements_list(
     if search:
         term = f"%{search}%"
         if search_col == "tool":
-            query = query.join(Tool).filter(Tool.name.ilike(term))
+            query = query.filter(Tool.name.ilike(term))
         elif search_col == "employee":
-            query = query.join(Employee).filter(Employee.name.ilike(term))
+            query = query.filter(Employee.name.ilike(term))
         elif search_col == "machine":
-            query = query.join(Machine).filter(Machine.name.ilike(term))
+            query = query.filter(Machine.name.ilike(term))
         elif search_col == "type":
             # map friendly text to DB value
             type_map = {"entrada": "IN", "saída": "OUT", "saida": "OUT"}
@@ -134,30 +172,28 @@ def movements_list(
             query = query.filter(Movement.loan_status.ilike(term))
         else:
             # "all" — search across tool name, employee name, machine name, notes
-            query = (
-                query
-                .outerjoin(Tool, Movement.tool_id == Tool.id)
-                .outerjoin(Employee, Movement.employee_id == Employee.id)
-                .outerjoin(Machine, Movement.machine_id == Machine.id)
-                .filter(
-                    Tool.name.ilike(term)
-                    | Employee.name.ilike(term)
-                    | Machine.name.ilike(term)
-                    | Movement.notes.ilike(term)
-                )
+            query = query.filter(
+                Tool.name.ilike(term)
+                | Employee.name.ilike(term)
+                | Machine.name.ilike(term)
+                | Movement.notes.ilike(term)
             )
 
-    if sort == "asc":
-        query = query.order_by(Movement.timestamp.asc())
-    else:
-        query = query.order_by(Movement.timestamp.desc())
+    effective_sort_dir = sort_dir if sort_dir in ("asc", "desc") else sort
+    query, normalized_sort_by, normalized_sort_dir = _apply_movement_sort(
+        query,
+        category,
+        sort_by,
+        effective_sort_dir,
+    )
 
     movements, pagination = paginate_query(
         query,
         base_path=request.url.path,
         params={
             "tool_id": tool_id,
-            "sort": sort,
+            "sort_by": normalized_sort_by,
+            "sort_dir": normalized_sort_dir,
             "category": category,
             "search": search,
             "search_col": search_col,
@@ -181,7 +217,11 @@ def movements_list(
             "employees": employees,
             "machines": machines,
             "selected_tool_id": tool_id,
-            "sort": sort,
+            "sort": normalized_sort_dir,
+            "sort_by": normalized_sort_by,
+            "sort_dir": normalized_sort_dir,
+            "current_sort_by": normalized_sort_by,
+            "current_sort_dir": normalized_sort_dir,
             "category": category,
             "search": search,
             "search_col": search_col,

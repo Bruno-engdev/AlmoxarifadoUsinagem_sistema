@@ -1,8 +1,7 @@
 {% extends "base.html" %}
 {% set active_page = "financials" %}
-{% set dashboard_url = '/financials' ~ ('?' ~ financial_nav_query if financial_nav_query else '') %}
-{% set table_url = '/financials/table' ~ ('?' ~ financial_nav_query if financial_nav_query else '') %}
 {% set selected_type = namespace(name='Todos os tipos') %}
+{% set is_admin = request.state.current_user and request.state.current_user.role == 'ADMIN' %}
 {% if f_tool_type_id %}
     {% for tt in tool_types %}
         {% if tt.id == f_tool_type_id %}
@@ -25,12 +24,6 @@
 {%- endmacro %}
 
 {% block title %}Tabela Financeira – Almoxarifado de Ferramentas{% endblock %}
-{% block topbar_nav %}
-<div class="topbar-local-nav" aria-label="Navegação da área financeira">
-    <a href="{{ dashboard_url }}" class="topbar-local-link {% if active_financial_view == 'dashboard' %}active{% endif %}">Dashboard</a>
-    <a href="{{ table_url }}" class="topbar-local-link {% if active_financial_view == 'table' %}active{% endif %}">Tabela financeira</a>
-</div>
-{% endblock %}
 {% block topbar_title %}Visão financeira e custos{% endblock %}
 
 {% block content %}
@@ -41,7 +34,7 @@
     <input type="hidden" name="sort_dir" value="{{ sort_dir }}">
 </form>
 
-<div class="page-subheader page-subheader--stacked">
+<div class="page-subheader page-subheader--stacked page-subheader--compact-top">
     <div class="ops-context-bar">
         <div class="ops-context-copy">
             <span class="ops-context-kicker">Financeiro</span>
@@ -89,8 +82,26 @@
                     <button form="variationBrowseForm" type="submit" class="btn btn-sm btn-outline-secondary tools-action-btn flex-shrink-0">
                         <i class="bi bi-funnel me-1"></i>Aplicar recorte
                     </button>
+                    {% if f_date_from or f_date_to or f_tool_type_id or f_tool_name %}
+                    <a href="/financials/table" class="btn btn-sm btn-outline-secondary tools-action-btn flex-shrink-0">
+                        <i class="bi bi-x-lg me-1"></i>Limpar recorte
+                    </a>
+                    {% endif %}
                 </div>
             </div>
+            {% if is_admin %}
+            <div class="movements-toolbar-section movements-toolbar-section--actions">
+                <span class="movements-toolbar-label">Atualização de preços</span>
+                <div class="movements-toolbar-actions">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-primary tools-action-btn financial-import-trigger"
+                            data-bs-toggle="modal"
+                            data-bs-target="#financialPriceImportModal">
+                        <i class="bi bi-upload me-1"></i>Importar XML de preços
+                    </button>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 
@@ -100,6 +111,9 @@
             <span class="ops-feedback-label">Browse financeiro paginado</span>
         </div>
         <div class="ops-feedback-chips">
+            <span class="filter-chip filter-chip--static">
+                <i class="bi {{ 'bi-sort-up' if sort_dir == 'asc' else 'bi-sort-down' }}"></i>Ordenado por {{ current_sort_label }} ({{ current_sort_direction_label }})
+            </span>
             {% if f_tool_name %}
             <span class="filter-chip filter-chip--muted">
                 <i class="bi bi-search"></i>{{ f_tool_name }}
@@ -163,4 +177,321 @@
         {% include "partials/pagination.html" %}
     </div>
 </div>
+
+{% if is_admin %}
+<div class="modal fade"
+     id="financialPriceImportModal"
+     tabindex="-1"
+     aria-labelledby="financialPriceImportLabel"
+     aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <span class="financial-import-kicker">Atualização assistida</span>
+                    <h2 class="modal-title fs-5 mb-0" id="financialPriceImportLabel">Importar tabela de preços do TOTVS</h2>
+                </div>
+                <button type="button" class="btn-close financial-import-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">
+                    Arraste o XML da tabela de preços para leitura e tratamento automático. O sistema concilia o arquivo com as ferramentas já cadastradas e atualiza o histórico de compra.
+                </p>
+
+                <div id="financialImportDropzone"
+                     class="financial-import-dropzone"
+                     role="button"
+                     tabindex="0"
+                     aria-describedby="financialImportHelp">
+                    <input type="file" id="financialImportFileInput" class="d-none" accept=".xml,.xlsx">
+                    <div class="financial-import-dropzone-icon">
+                        <i class="bi bi-file-earmark-arrow-up"></i>
+                    </div>
+                    <div class="financial-import-dropzone-copy">
+                        <strong>Arraste o arquivo aqui</strong>
+                        <span>ou clique para selecionar um XML do TOTVS</span>
+                    </div>
+                </div>
+
+                <div id="financialImportHelp" class="financial-import-help">
+                    Formato principal: XML Spreadsheet 2003 exportado do TOTVS. O layout XLSX legado continua aceito no mesmo fluxo.
+                </div>
+
+                <div class="financial-import-selected d-none" id="financialImportSelected">
+                    <div class="financial-import-selected-meta">
+                        <span class="financial-import-selected-label">Arquivo selecionado</span>
+                        <strong id="financialImportSelectedName" class="financial-import-selected-name"></strong>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="financialImportClearBtn">
+                        <i class="bi bi-arrow-repeat me-1"></i>Trocar arquivo
+                    </button>
+                </div>
+
+                <div class="financial-import-loading d-none" id="financialImportLoading" role="status" aria-live="polite">
+                    <div class="spinner-border text-info" aria-hidden="true"></div>
+                    <div class="financial-import-loading-copy">
+                        <strong>Lendo e tratando o arquivo</strong>
+                        <span>O histórico será validado, deduplicado e conciliado com a base atual.</span>
+                    </div>
+                </div>
+
+                <div class="alert d-none financial-import-result" id="financialImportResult" role="alert"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary financial-import-close" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-sm btn-primary" id="financialImportSubmit" disabled>
+                    <span class="spinner-border spinner-border-sm me-2 d-none" id="financialImportSubmitSpinner" aria-hidden="true"></span>
+                    <i class="bi bi-cloud-upload me-1" id="financialImportSubmitIcon"></i>Importar arquivo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if is_admin %}
+<script>
+(function () {
+    const modalEl = document.getElementById('financialPriceImportModal');
+    if (!modalEl) return;
+
+    const fileInput = document.getElementById('financialImportFileInput');
+    const dropzone = document.getElementById('financialImportDropzone');
+    const selectedBox = document.getElementById('financialImportSelected');
+    const selectedName = document.getElementById('financialImportSelectedName');
+    const clearButton = document.getElementById('financialImportClearBtn');
+    const loadingBox = document.getElementById('financialImportLoading');
+    const resultBox = document.getElementById('financialImportResult');
+    const submitButton = document.getElementById('financialImportSubmit');
+    const submitSpinner = document.getElementById('financialImportSubmitSpinner');
+    const submitIcon = document.getElementById('financialImportSubmitIcon');
+    const closeButtons = Array.from(document.querySelectorAll('.financial-import-close'));
+
+    let selectedFile = null;
+    let isBusy = false;
+    let refreshOnClose = false;
+
+    const escapeHtml = (value) => String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const isSupportedFile = (file) => Boolean(file && /\.(xml|xlsx)$/i.test(file.name || ''));
+
+    const resetResult = () => {
+        resultBox.className = 'alert d-none financial-import-result';
+        resultBox.innerHTML = '';
+    };
+
+    const setBusy = (busy) => {
+        isBusy = busy;
+        dropzone.classList.toggle('is-disabled', busy);
+        dropzone.setAttribute('aria-disabled', busy ? 'true' : 'false');
+        fileInput.disabled = busy;
+        clearButton.disabled = busy;
+        closeButtons.forEach((button) => {
+            button.disabled = busy;
+        });
+        loadingBox.classList.toggle('d-none', !busy);
+        submitSpinner.classList.toggle('d-none', !busy);
+        submitIcon.classList.toggle('d-none', busy);
+        submitButton.disabled = busy || !selectedFile;
+    };
+
+    const updateSelectedFile = (file) => {
+        if (!file) {
+            selectedFile = null;
+            selectedName.textContent = '';
+            selectedBox.classList.add('d-none');
+            submitButton.disabled = true;
+            return;
+        }
+
+        if (!isSupportedFile(file)) {
+            selectedFile = null;
+            selectedName.textContent = '';
+            selectedBox.classList.add('d-none');
+            submitButton.disabled = true;
+            fileInput.value = '';
+            resultBox.className = 'alert alert-danger financial-import-result';
+            resultBox.innerHTML = '<div class="financial-import-result-body"><i class="bi bi-exclamation-triangle-fill"></i><div class="financial-import-result-copy"><strong>Formato não suportado.</strong><span>Use um arquivo .xml do TOTVS ou um .xlsx no layout legado.</span></div></div>';
+            return;
+        }
+
+        selectedFile = file;
+        selectedName.textContent = file.name;
+        selectedBox.classList.remove('d-none');
+        submitButton.disabled = false;
+        resetResult();
+    };
+
+    const renderResult = (message, variant, extraHtml = '') => {
+        const iconMap = {
+            success: 'bi-check-circle-fill',
+            warning: 'bi-exclamation-circle-fill',
+            danger: 'bi-exclamation-triangle-fill',
+        };
+        resultBox.className = `alert alert-${variant} financial-import-result`;
+        resultBox.innerHTML = `
+            <div class="financial-import-result-body">
+                <i class="bi ${iconMap[variant] || iconMap.danger}"></i>
+                <div class="financial-import-result-copy">
+                    <strong>${escapeHtml(message)}</strong>
+                    ${extraHtml}
+                </div>
+            </div>
+        `;
+    };
+
+    const renderServerResult = (payload) => {
+        const variant = payload.status === 'warning' ? 'warning' : 'success';
+        const metrics = [
+            `Inseridas: ${Number(payload.inserted || 0)}`,
+            `Duplicadas: ${Number(payload.skipped_duplicate || 0)}`,
+            `Sem ferramenta: ${Number(payload.skipped_no_match || 0)}`,
+            `Inválidas: ${Number(payload.skipped_invalid || 0)}`,
+            `Ferramentas atualizadas: ${Number(payload.tools_affected || 0)}`,
+        ].map((item) => `<span>${escapeHtml(item)}</span>`).join('');
+
+        const errors = Array.isArray(payload.errors) ? payload.errors : [];
+        const errorHtml = errors.length
+            ? `
+                <div class="financial-import-result-errors">
+                    <span>Primeiras inconsistências encontradas:</span>
+                    <ul>${errors.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+                    ${payload.has_more_errors ? '<span class="text-muted">Existem mais linhas com inconsistência no arquivo.</span>' : ''}
+                </div>
+            `
+            : '';
+
+        renderResult(
+            payload.message || 'Importação concluída.',
+            variant,
+            `
+                <div class="financial-import-result-summary">${escapeHtml(payload.summary || '')}</div>
+                <div class="financial-import-result-metrics">${metrics}</div>
+                ${errorHtml}
+            `
+        );
+    };
+
+    const resetModal = () => {
+        selectedFile = null;
+        refreshOnClose = false;
+        fileInput.value = '';
+        selectedName.textContent = '';
+        selectedBox.classList.add('d-none');
+        dropzone.classList.remove('is-dragover');
+        resetResult();
+        setBusy(false);
+    };
+
+    dropzone.addEventListener('click', () => {
+        if (!isBusy) {
+            fileInput.click();
+        }
+    });
+
+    dropzone.addEventListener('keydown', (event) => {
+        if (isBusy) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            fileInput.click();
+        }
+    });
+
+    ['dragenter', 'dragover'].forEach((eventName) => {
+        dropzone.addEventListener(eventName, (event) => {
+            event.preventDefault();
+            if (isBusy) return;
+            dropzone.classList.add('is-dragover');
+        });
+    });
+
+    ['dragleave', 'dragend'].forEach((eventName) => {
+        dropzone.addEventListener(eventName, () => {
+            dropzone.classList.remove('is-dragover');
+        });
+    });
+
+    dropzone.addEventListener('drop', (event) => {
+        event.preventDefault();
+        if (isBusy) return;
+        dropzone.classList.remove('is-dragover');
+        const file = event.dataTransfer && event.dataTransfer.files ? event.dataTransfer.files[0] : null;
+        updateSelectedFile(file);
+    });
+
+    fileInput.addEventListener('change', () => {
+        updateSelectedFile(fileInput.files && fileInput.files.length ? fileInput.files[0] : null);
+    });
+
+    clearButton.addEventListener('click', () => {
+        if (isBusy) return;
+        fileInput.value = '';
+        updateSelectedFile(null);
+        resetResult();
+    });
+
+    submitButton.addEventListener('click', async () => {
+        if (isBusy) return;
+
+        if (!selectedFile) {
+            renderResult('Selecione um arquivo antes de iniciar a importação.', 'danger');
+            return;
+        }
+
+        if (!isSupportedFile(selectedFile)) {
+            renderResult('Formato não suportado.', 'danger', '<span>Use um arquivo .xml do TOTVS ou um .xlsx no layout legado.</span>');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', selectedFile, selectedFile.name);
+
+        resetResult();
+        setBusy(true);
+
+        try {
+            const response = await fetch('/api/financials/price-history/import', {
+                method: 'POST',
+                body: formData,
+            });
+            const payload = await response.json().catch(() => ({
+                ok: false,
+                message: 'A resposta do servidor veio em formato inesperado.',
+            }));
+
+            if (!response.ok || !payload.ok) {
+                throw new Error(payload.message || 'Não foi possível importar a tabela de preços.');
+            }
+
+            renderServerResult(payload);
+            refreshOnClose = Number(payload.inserted || 0) > 0;
+        } catch (error) {
+            renderResult(
+                error instanceof Error ? error.message : 'Não foi possível importar a tabela de preços.',
+                'danger'
+            );
+            refreshOnClose = false;
+        } finally {
+            setBusy(false);
+        }
+    });
+
+    modalEl.addEventListener('show.bs.modal', resetModal);
+    modalEl.addEventListener('hidden.bs.modal', () => {
+        const shouldReload = refreshOnClose;
+        resetModal();
+        if (shouldReload) {
+            window.location.reload();
+        }
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}

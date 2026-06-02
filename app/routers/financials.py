@@ -6,17 +6,20 @@ Two analytical layers:
 - Purchase price: based on ToolPriceHistory (TOTVS imports).
 """
 
+import shutil
 from datetime import datetime, date, timedelta
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 from urllib.parse import urlencode
 import unicodedata
 
-from fastapi import APIRouter, Request, Depends, Query
+from fastapi import APIRouter, Request, Depends, Query, File, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Tool, ToolType
-from app.auth import require_login
+from app.auth import require_login, require_admin
 from app.pagination import paginate_items
 from app.services.analytics import (
     get_total_consumed_value,
@@ -30,6 +33,8 @@ from app.services.analytics import (
     _resolve_financial_window,
     _previous_window,
 )
+from app.services.price_history_import import import_price_history
+from app.services.price_history_xlsx import read_totvs_price_file
 
 router = APIRouter(dependencies=[Depends(require_login)])
 
@@ -46,10 +51,25 @@ VARIATION_SORT_FIELDS = {
     "last_date",
 }
 
+VARIATION_SORT_LABELS = {
+    "name": "Ferramenta",
+    "tool_type_name": "Tipo",
+    "consumed_value": "Gasto consumido",
+    "spent_share_pct": "% part.",
+    "last_price": "Ultimo preco",
+    "prev_price": "Preco anterior",
+    "var_abs": "Delta R$",
+    "var_pct": "Delta %",
+    "var_pct_abs": "Maior variacao percentual",
+    "last_date": "Ultima compra",
+}
+
 MONTH_NAMES = [
     "", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
     "Jul", "Ago", "Set", "Out", "Nov", "Dez",
 ]
+
+PRICE_IMPORT_ALLOWED_SUFFIXES = {".xml", ".xlsx"}
 
 
 def _parse_date(value: str | None) -> date | None:
@@ -86,18 +106,6 @@ def _normalize_text(value: object | None) -> str:
     return "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn").lower()
 
 
-def _parse_decimal_filter(value: str | None) -> float | None:
-    if value is None:
-        return None
-    normalized = value.strip().replace(",", ".")
-    if not normalized:
-        return None
-    try:
-        return float(normalized)
-    except ValueError:
-        return None
-
-
 def _compact_query(params: dict[str, object]) -> str:
     compact = {
         key: value
@@ -118,37 +126,28 @@ def _financial_nav_query(*, date_from: str, date_to: str, tool_type_id: int, too
     )
 
 
-def _filter_variation_rows(rows: list[dict], *, search: str,
-                           min_consumed: float | None,
-                           min_share: float | None) -> list[dict]:
-    search_term = _normalize_text(search)
-    filtered = []
-    for row in rows:
-        if min_consumed is not None and float(row.get("consumed_value", 0) or 0) < min_consumed:
-            continue
-        if min_share is not None and float(row.get("spent_share_pct", 0) or 0) < min_share:
-            continue
-        if search_term:
-            searchable = _normalize_text(
-                " ".join(
-                    str(value or "")
-                    for value in (
-                        row.get("name"),
-                        row.get("tool_type_name"),
-                        row.get("last_date"),
-                        row.get("last_price"),
-                        row.get("prev_price"),
-                        row.get("var_abs"),
-                        row.get("var_pct"),
-                        row.get("consumed_value"),
-                        row.get("spent_share_pct"),
-                    )
-                )
-            )
-            if search_term not in searchable:
-                continue
-        filtered.append(row)
-    return filtered
+def _serialize_import_result(result, *, file_name: str) -> dict:
+    status = "success" if result.inserted > 0 else "warning"
+    message = (
+        "Importação concluída com sucesso. Feche o modal para recarregar a tabela."
+        if result.inserted > 0
+        else "Arquivo processado, mas nenhuma nova linha foi importada."
+    )
+    preview_errors = result.errors[:8]
+    return {
+        "ok": True,
+        "status": status,
+        "message": message,
+        "file_name": file_name,
+        "summary": result.summary(),
+        "inserted": result.inserted,
+        "skipped_duplicate": result.skipped_duplicate,
+        "skipped_no_match": result.skipped_no_match,
+        "skipped_invalid": result.skipped_invalid,
+        "tools_affected": result.tools_affected,
+        "errors": preview_errors,
+        "has_more_errors": len(result.errors) > len(preview_errors),
+    }
 
 
 def _sort_variation_rows(rows: list[dict], *, sort_by: str, sort_dir: str) -> list[dict]:
@@ -178,7 +177,6 @@ def _sort_variation_rows(rows: list[dict], *, sort_by: str, sort_dir: str) -> li
 def _variation_sort_urls(base_path: str, *,
                          date_from: str, date_to: str,
                          tool_type_id: int, tool_name: str,
-                         search: str, min_consumed: str, min_share: str,
                          per_page: int, current_sort_by: str,
                          current_sort_dir: str) -> dict[str, str]:
     base_params = {
@@ -186,9 +184,6 @@ def _variation_sort_urls(base_path: str, *,
         "date_to": date_to,
         "tool_type_id": tool_type_id,
         "tool_name": tool_name,
-        "search": search,
-        "min_consumed": min_consumed,
-        "min_share": min_share,
         "per_page": per_page,
         "page": 1,
     }
@@ -299,6 +294,12 @@ def financials(
         db, d_from=d_from or resolved_start, d_to=d_to or resolved_end,
         tt_id=tt_id, t_name=t_name,
     )
+    payload["window"] = {
+        "current_start": resolved_start.isoformat(),
+        "current_end": resolved_end.isoformat(),
+        "previous_start": prev_start.isoformat(),
+        "previous_end": prev_end.isoformat(),
+    }
 
     tool_types = db.query(ToolType).order_by(ToolType.name).all()
 
@@ -337,9 +338,6 @@ def financials_table(
     date_to: str = Query("", alias="date_to"),
     tool_type_id: int = Query(0, alias="tool_type_id"),
     tool_name: str = Query("", alias="tool_name"),
-    search: str = Query("", alias="search"),
-    min_consumed: str = Query("", alias="min_consumed"),
-    min_share: str = Query("", alias="min_share"),
     sort_by: str = Query("var_pct_abs", alias="sort_by"),
     sort_dir: str = Query("desc", alias="sort_dir"),
     page: int = Query(1, ge=1),
@@ -354,8 +352,6 @@ def financials_table(
     resolved_start, resolved_end = _resolve_financial_window(d_from, d_to)
     prev_start, prev_end = _previous_window(resolved_start, resolved_end)
 
-    min_consumed_value = _parse_decimal_filter(min_consumed)
-    min_share_value = _parse_decimal_filter(min_share)
     sort_by = sort_by if sort_by in VARIATION_SORT_FIELDS else "var_pct_abs"
     sort_dir = sort_dir if sort_dir in ("asc", "desc") else "desc"
 
@@ -365,12 +361,6 @@ def financials_table(
         d_to=d_to or resolved_end,
         tt_id=tt_id,
         t_name=t_name,
-    )
-    rows = _filter_variation_rows(
-        rows,
-        search=search,
-        min_consumed=min_consumed_value,
-        min_share=min_share_value,
     )
     rows = _sort_variation_rows(rows, sort_by=sort_by, sort_dir=sort_dir)
 
@@ -382,9 +372,6 @@ def financials_table(
             "date_to": date_to,
             "tool_type_id": tool_type_id,
             "tool_name": tool_name,
-            "search": search,
-            "min_consumed": min_consumed,
-            "min_share": min_share,
             "sort_by": sort_by,
             "sort_dir": sort_dir,
         },
@@ -418,16 +405,12 @@ def financials_table(
                 date_to=date_to,
                 tool_type_id=tool_type_id,
                 tool_name=tool_name,
-                search=search,
-                min_consumed=min_consumed,
-                min_share=min_share,
                 per_page=pagination["per_page"],
                 current_sort_by=sort_by,
                 current_sort_dir=sort_dir,
             ),
-            "search": search,
-            "min_consumed": min_consumed,
-            "min_share": min_share,
+            "current_sort_label": VARIATION_SORT_LABELS.get(sort_by, "Maior variacao percentual"),
+            "current_sort_direction_label": "crescente" if sort_dir == "asc" else "decrescente",
             "f_date_from": date_from,
             "f_date_to": date_to,
             "f_tool_type_id": tool_type_id,
@@ -438,6 +421,74 @@ def financials_table(
             "prev_window_end": prev_end.isoformat(),
         },
     )
+
+
+@router.post("/api/financials/price-history/import")
+async def api_import_financial_price_history(
+    file: UploadFile = File(...),
+    _admin=Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    file_name = Path(file.filename or "").name.strip()
+    suffix = Path(file_name).suffix.lower()
+
+    if not file_name:
+        return JSONResponse(
+            {"ok": False, "message": "Selecione um arquivo XML da tabela de preços para importar."},
+            status_code=400,
+        )
+
+    if suffix not in PRICE_IMPORT_ALLOWED_SUFFIXES:
+        return JSONResponse(
+            {
+                "ok": False,
+                "message": "Formato não suportado. Use .xml do TOTVS ou .xlsx no layout legado.",
+            },
+            status_code=400,
+        )
+
+    temp_path: Path | None = None
+    try:
+        with NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+            shutil.copyfileobj(file.file, temp_file)
+            temp_path = Path(temp_file.name)
+
+        rows = read_totvs_price_file(temp_path)
+        if not rows:
+            return JSONResponse(
+                {
+                    "ok": False,
+                    "message": "O arquivo foi lido, mas nenhuma linha de dados utilizável foi encontrada.",
+                },
+                status_code=400,
+            )
+
+        result = import_price_history(
+            db,
+            rows,
+            source="TOTVS Upload",
+            file_name=file_name,
+        )
+        return JSONResponse(_serialize_import_result(result, file_name=file_name))
+    except ValueError as exc:
+        db.rollback()
+        return JSONResponse({"ok": False, "message": str(exc)}, status_code=400)
+    except Exception:
+        db.rollback()
+        return JSONResponse(
+            {
+                "ok": False,
+                "message": "Falha ao importar a tabela de preços. Revise o XML e tente novamente.",
+            },
+            status_code=500,
+        )
+    finally:
+        await file.close()
+        if temp_path and temp_path.exists():
+            try:
+                temp_path.unlink()
+            except OSError:
+                pass
 
 
 @router.get("/api/financials")
@@ -454,8 +505,15 @@ def api_financials(
     t_name = tool_name.strip() if tool_name else None
 
     resolved_start, resolved_end = _resolve_financial_window(d_from, d_to)
+    prev_start, prev_end = _previous_window(resolved_start, resolved_end)
     payload = _build_financial_payload(
         db, d_from=d_from or resolved_start, d_to=d_to or resolved_end,
         tt_id=tt_id, t_name=t_name,
     )
+    payload["window"] = {
+        "current_start": resolved_start.isoformat(),
+        "current_end": resolved_end.isoformat(),
+        "previous_start": prev_start.isoformat(),
+        "previous_end": prev_end.isoformat(),
+    }
     return JSONResponse(payload)
