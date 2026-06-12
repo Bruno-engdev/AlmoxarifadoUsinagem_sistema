@@ -46,7 +46,6 @@
 {% set mv_col_labels = {'all': 'Todos', 'tool': 'Ferramenta', 'employee': 'Funcionário', 'machine': 'Máquina', 'type': 'Tipo', 'notes': 'Observações', 'status': 'Status'} %}
 <div class="page-subheader page-subheader--stacked">
   <div class="ops-context-bar">
-    <div class="ops-context-copy">
       <div class="ops-context-heading">
         <h1 class="ops-context-title">Movimentações</h1>
         <button class="btn btn-sm ops-help-toggle collapsed" type="button"
@@ -66,8 +65,7 @@
           class="category-tab {% if category == 'REPOSICAO' %}active{% endif %}">
           <i class="bi bi-arrow-left-right me-1"></i>Reposições
         </a>
-      </div>
-    </div>  
+      </div> 
     <div class="ops-context-meta">
       <span class="ops-meta-pill">
         <i class="bi bi-arrow-left-right"></i>
@@ -86,7 +84,6 @@
       </p>
     </div>
   </div>
-
   
   <div class="movements-toolbar-shell">
     <form method="GET" action="/movements" class="movements-toolbar-form" id="movementsFiltersForm">
@@ -94,40 +91,6 @@
       <input type="hidden" name="sort_by" value="{{ sort_by }}">
       <input type="hidden" name="sort_dir" value="{{ sort_dir }}">
       <input type="hidden" name="per_page" value="{{ per_page }}">
-
-      <div class="movements-toolbar-tier movements-toolbar-tier--context">
-        <div class="movements-toolbar-section movements-toolbar-section--tool">
-          <span class="movements-toolbar-label">Ferramenta em foco</span>
-          <div class="toolbar-inline-form">
-            <select name="tool_id" class="form-select form-select-sm movements-tool-select" onchange="this.form.submit()">
-              <option value="0">Todas as Ferramentas</option>
-              {% for t in tools %}
-              <option value="{{ t.id }}" {% if selected_tool_id == t.id %}selected{% endif %}>
-                {{ t.name }}
-              </option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-        {% if (selected_tool_id and selected_tool_id != 0) or search or date_from or date_to or is_admin %}
-        <div class="movements-toolbar-section movements-toolbar-section--actions">
-          <span class="movements-toolbar-label">Ações rápidas</span>
-          <div class="movements-toolbar-actions">
-            {% if (selected_tool_id and selected_tool_id != 0) or search or date_from or date_to %}
-            <a href="/movements?category={{ category }}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&per_page={{ per_page }}" class="btn btn-sm btn-outline-secondary tools-action-btn">
-              <i class="bi bi-x-lg me-1"></i>Limpar filtros
-            </a>
-            {% endif %}
-            {% if is_admin %}
-            <button type="button" class="btn btn-sm btn-primary tools-action-btn"
-                    data-bs-toggle="modal" data-bs-target="#manualMovementModal">
-              <i class="bi bi-plus-lg me-1"></i>Adicionar manualmente
-            </button>
-            {% endif %}
-          </div>
-        </div>
-        {% endif %}
-      </div>
 
       <div class="movements-toolbar-tier movements-toolbar-tier--filters">
         <div class="movements-toolbar-section movements-toolbar-section--period">
@@ -174,6 +137,22 @@
               <button class="btn btn-sm btn-outline-secondary" type="submit">Aplicar</button>
             </div>
           </div>
+        </div>
+        
+        <div class="movements-toolbar-tier movements-toolbar-tier--context">
+                  {% if (selected_tool_id and selected_tool_id != 0) or search or date_from or date_to or is_admin %}
+          <div class="movements-toolbar-section movements-toolbar-section--actions">
+            <span class="movements-toolbar-label">Ações rápidas</span>
+            <div class="movements-toolbar-actions">
+              {% if is_admin %}
+              <button type="button" class="btn btn-sm btn-primary tools-action-btn"
+                      data-bs-toggle="modal" data-bs-target="#manualMovementModal">
+                <i class="bi bi-plus-lg me-1"></i>Adicionar manualmente
+              </button>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
         </div>
       </div>
     </form>
