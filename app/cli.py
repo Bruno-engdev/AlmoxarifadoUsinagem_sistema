@@ -87,6 +87,67 @@ def _cmd_import_price_history(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_backfill_movement_costs(args: argparse.Namespace) -> int:
+    """Atualiza Movement.unit_cost = 0/NULL usando o preço mais recente da TOTVS."""
+    from app.database import SessionLocal
+    from app.models import Movement, Tool, ToolPriceHistory
+
+    db = SessionLocal()
+    try:
+        latest_rows = (
+            db.query(ToolPriceHistory.tool_id, ToolPriceHistory.preco_unitario)
+            .filter(ToolPriceHistory.is_latest.is_(True))
+            .all()
+        )
+        latest_by_tool: dict[int, float] = {
+            tid: float(price) for tid, price in latest_rows if price is not None
+        }
+        if not latest_by_tool:
+            print("[cli] backfill-movement-costs: nenhum preço em ToolPriceHistory. Rode import-price-history antes.")
+            return 1
+
+        movements = (
+            db.query(Movement)
+            .filter(
+                Movement.tool_id.in_(latest_by_tool.keys()),
+                (Movement.unit_cost.is_(None)) | (Movement.unit_cost == 0),
+            )
+            .all()
+        )
+        print(f"[cli] backfill-movement-costs: {len(movements)} movimentações candidatas.")
+
+        updated = 0
+        for mv in movements:
+            price = latest_by_tool.get(mv.tool_id)
+            if price is None or price <= 0:
+                continue
+            mv.unit_cost = price
+            updated += 1
+
+        tool_ids = list(latest_by_tool.keys())
+        tools_updated = 0
+        if tool_ids:
+            tools = db.query(Tool).filter(Tool.id.in_(tool_ids)).all()
+            for t in tools:
+                price = latest_by_tool.get(t.id)
+                if price is None:
+                    continue
+                if float(t.unit_cost or 0) != price:
+                    t.unit_cost = price
+                    tools_updated += 1
+
+        if args.dry_run:
+            db.rollback()
+            prefix = "[DRY-RUN] "
+        else:
+            db.commit()
+            prefix = ""
+        print(f"[cli] {prefix}backfill-movement-costs: {updated} movimentações atualizadas, {tools_updated} ferramentas sincronizadas.")
+    finally:
+        db.close()
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="app.cli")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -104,6 +165,12 @@ def main(argv: list[str] | None = None) -> int:
     p_imp.add_argument("--dry-run", action="store_true", help="Não persiste no banco")
     p_imp.add_argument("--verbose", action="store_true", help="Lista erros de parsing")
 
+    p_bf = sub.add_parser(
+        "backfill-movement-costs",
+        help="Preenche Movement.unit_cost vazio/zero usando o preço mais recente da TOTVS",
+    )
+    p_bf.add_argument("--dry-run", action="store_true", help="Não persiste no banco")
+
     args = parser.parse_args(argv)
     if args.command == "seed":
         return _cmd_seed()
@@ -113,6 +180,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_scan_alerts()
     if args.command == "import-price-history":
         return _cmd_import_price_history(args)
+    if args.command == "backfill-movement-costs":
+        return _cmd_backfill_movement_costs(args)
     parser.error(f"unknown command: {args.command}")
     return 2
 

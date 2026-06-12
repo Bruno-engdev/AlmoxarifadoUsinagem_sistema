@@ -18,7 +18,7 @@
 {%- endmacro %}
 
 {% block title %}Ferramentas – Almoxarifado{% endblock %}
-{% block topbar_title %}Estoque de Ferramentas{% endblock %}
+{% block topbar_title %}Gestão de Ferramentas{% endblock %}
 
 {% block content %}
 {% set col_label_map = {'all': 'Todos', 'name': 'Nome', 'origin_id': 'ID TOTVS', 'tool_type': 'Tipo', 'location': 'Localização', 'status': 'Status'} %}
@@ -26,9 +26,8 @@
 <div class="page-subheader page-subheader--stacked">
     <div class="ops-context-bar">
         <div class="ops-context-copy">
-            <span class="ops-context-kicker">Operação</span>
             <div class="ops-context-heading">
-                <h1 class="ops-context-title">Gestão de ferramentas</h1>
+                <h1 class="ops-context-title">Movimentações</h1>
                 <button class="btn btn-sm ops-help-toggle collapsed" type="button"
                         data-bs-toggle="collapse" data-bs-target="#toolsPageHelp"
                         aria-expanded="false" aria-controls="toolsPageHelp">
@@ -448,12 +447,6 @@
                            min="1" required>
                 </div>
 
-                <div class="mb-3 d-none" id="mvCostGroup">
-                    <label for="mvCost" class="form-label fw-semibold">Custo Unitário (R$) *</label>
-                    <input type="number" name="unit_cost" id="mvCost" class="form-control"
-                           min="0" step="0.01" placeholder="0.00">
-                </div>
-
                 <div class="mb-3">
                     <label for="mvNotes" class="form-label fw-semibold">Observações</label>
                     <textarea name="notes" id="mvNotes" class="form-control" rows="2"></textarea>
@@ -724,18 +717,15 @@ function prepareMovement(toolId, toolName, type, category) {
     const machGroup = document.getElementById('mvMachineGroup');
     const empSelect = document.getElementById('mvEmployee');
     const machSelect = document.getElementById('mvMachine');
-    const costGroup = document.getElementById('mvCostGroup');
-    const costInput = document.getElementById('mvCost');
 
     // Reset fields
     empSelect.value = '';
     machSelect.value = '';
     document.getElementById('mvQty').value = '';
     document.getElementById('mvNotes').value = '';
-    costInput.value = '';
 
     if (type === 'IN') {
-        // Entrada: pede funcionário e custo unitário
+        // Entrada: pede funcionário
         title.textContent = 'Entrada de Estoque – ' + toolName;
         btn.className = 'btn btn-success';
         btn.textContent = 'Adicionar Estoque';
@@ -743,8 +733,6 @@ function prepareMovement(toolId, toolName, type, category) {
         machGroup.classList.add('d-none');
         empSelect.required = true;
         machSelect.required = false;
-        costGroup.classList.remove('d-none');
-        costInput.required = true;
     } else if (category === 'EMPRESTIMO') {
         // Emprestar: pede funcionário
         title.textContent = 'Empréstimo – ' + toolName;
@@ -754,8 +742,6 @@ function prepareMovement(toolId, toolName, type, category) {
         machGroup.classList.add('d-none');
         empSelect.required = true;
         machSelect.required = false;
-        costGroup.classList.add('d-none');
-        costInput.required = false;
     } else {
         // Saída (Reposição): pede máquina
         title.textContent = 'Saída de Estoque – ' + toolName;
@@ -765,8 +751,6 @@ function prepareMovement(toolId, toolName, type, category) {
         machGroup.classList.remove('d-none');
         empSelect.required = false;
         machSelect.required = true;
-        costGroup.classList.add('d-none');
-        costInput.required = false;
     }
 }
 

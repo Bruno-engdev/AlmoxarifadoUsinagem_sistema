@@ -183,7 +183,7 @@ body {
 .topbar-center-content {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 0.55rem;
     width: 100%;
     min-width: 0;
@@ -228,7 +228,7 @@ body {
     color: var(--text-primary);
 }
 .topbar-page-title {
-    font-size: 1.05rem;
+    font-size: 1.15rem;
     font-weight: 700;
     color: var(--text-primary);
     min-width: 0;
@@ -495,6 +495,9 @@ body {
     padding: var(--content-block-padding) var(--content-inline-padding);
     flex: 1;
     min-height: calc(100vh - var(--topbar-height));
+    background-color: var(--bg-primary);
+    background-image: linear-gradient(180deg, var(--bg-primary) 0%, #0b1323 100%);
+    background-attachment: fixed;
 }
 
 .main-content > .page-subheader:first-child,
@@ -1103,16 +1106,16 @@ hr {
 
 /* ====== Category Tabs (Movements page) ====== */
 .category-tabs {
+    margin-left: 2rem;
     display: flex;
+    align-items: flex-start;
     gap: 4px;
     border-bottom: 2px solid var(--border-color);
     padding-bottom: 0;
-    width: 100%;
+    max-width: min-content;
+    max-height: fit-content;
     margin-inline: calc(-1 * var(--content-inline-padding));
     padding-inline: var(--content-inline-padding);
-    width: calc(100% + 2 * var(--content-inline-padding));
-    margin-top: calc(-1 * var(--content-block-padding));
-
 }
 .category-tab {
     flex: 1;
@@ -1124,22 +1127,20 @@ hr {
     text-decoration: none;
     font-weight: 500;
     font-size: 0.9rem;
-    border-bottom: 2px solid transparent;
     margin-bottom: -2px;
     transition: color 0.15s ease, border-color 0.15s ease;
-
+    border-radius: 0 !important;
 }
 .category-tab:hover {
     color: var(--text-primary);
-    background-color: var(--accent-blue-soft);
     text-decoration: none;
+    border-radius: 0 !important;
 }
 .category-tab.active {
-    background-color: var(--accent-blue-soft);
     color: var(--text-primary);
     box-shadow: inset 0 -2px 0 var(--accent-blue);
-    border-bottom-color: var(--accent-blue);
     font-weight: 600;
+    text-shadow: 0 0 10px rgba(17, 72, 139, 0.8);
 }
 
 /* ====== Filter Card (compact) ====== */
@@ -1560,6 +1561,8 @@ hr {
     background: rgba(16, 24, 41, 0.84);
     border-bottom: 1px solid rgba(183, 195, 216, 0.08);
     font-size: 0.95rem;
+    background-image: linear-gradient(135deg, #111c33 0%, #1f232e 50%, #141925 100%);
+
 }
 
 .dashboard-panel .card-header .badge {
@@ -2067,12 +2070,14 @@ th.sortable.desc .sort-icon {
     flex: 0 1 auto;
 }
 .tools-action-btn {
+    height: 33px;
     font-size: 0.78rem;
     padding: 0.3rem 0.65rem;
     font-weight: 500;
     border-color: var(--border-color);
     color: var(--text-secondary);
 }
+
 .tools-action-btn:hover {
     background-color: var(--hover-bg);
     color: var(--text-primary);
@@ -2082,7 +2087,7 @@ th.sortable.desc .sort-icon {
     max-width: 480px;
 }
 .tools-search-form .input-group {
-    border-radius: 4px;
+    border-radius: 2px;
 }
 .tools-search-icon {
     font-size: 0.8rem;
@@ -2097,6 +2102,8 @@ th.sortable.desc .sort-icon {
     background: rgba(16, 24, 41, 0.84);
     border-bottom: 1px solid rgba(183, 195, 216, 0.08);
     backdrop-filter: blur(12px);
+    margin-top: 2rem;  /* Aumenta o espaço do topo */
+
 }
 
 .page-subheader--stacked {
@@ -2120,21 +2127,22 @@ th.sortable.desc .sort-icon {
 
 .ops-context-copy {
     min-width: 0;
+    display: flex;
+    gap:2rem;
 }
 
 .ops-context-heading {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap; 
     gap: 0.5rem;
-    margin-top: 0.3rem;
 }
 
 .ops-context-kicker {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    font-size: 0.72rem;
+    font-size: 1.18rem;
     text-transform: uppercase;
     letter-spacing: 0.14em;
     font-weight: 700;
@@ -2146,7 +2154,7 @@ th.sortable.desc .sort-icon {
     font-size: 1.18rem;
     line-height: 1.1;
     font-weight: 700;
-    color: var(--text-primary);
+    color: var(--accent-blue);
 }
 
 .ops-help-toggle {
@@ -2209,7 +2217,7 @@ th.sortable.desc .sort-icon {
 
 .ops-context-meta {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: flex-end;
     gap: 0.45rem;
 }
@@ -2282,7 +2290,7 @@ th.sortable.desc .sort-icon {
 .page-subheader .tools-search-form .input-group {
     overflow: visible;
     border: 1px solid rgba(183, 195, 216, 0.10);
-    border-radius: 10px;
+    border-radius: 2px;
     background: rgba(15, 23, 42, 0.92);
     position: relative;
     z-index: 1041;
@@ -2353,8 +2361,7 @@ th.sortable.desc .sort-icon {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    padding-top: 0.65rem;
-    border-top: 1px solid rgba(183, 195, 216, 0.08);
+    padding-top: 0.2rem;
 }
 
 .movements-toolbar-tier {
@@ -2432,9 +2439,6 @@ th.sortable.desc .sort-icon {
     display: flex;
     align-items: center;
     gap: 0.45rem;
-    padding: 0.35rem 0.45rem;
-    border: 1px solid rgba(183, 195, 216, 0.10);
-    border-radius: 10px;
     background: rgba(15, 23, 42, 0.72);
 }
 
@@ -2519,6 +2523,7 @@ th.sortable.desc .sort-icon {
 
 .page-grid-fullwidth {
     margin-inline: calc(-1 * var(--content-inline-padding));
+    background-color: transparent;
 }
 
 /* Export modal – column selector */
@@ -2644,7 +2649,7 @@ th.sortable.desc .sort-icon {
 .tools-grid-wrapper {
     border: 1px solid var(--border-color);
     border-top: none;
-    background-color: var(--bg-card);
+    background-color: transparent;
 }
 
 .page-grid-fullwidth .tools-grid-wrapper {

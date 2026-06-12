@@ -97,7 +97,7 @@
 
 <!-- ====== Nav Drawer ====== -->
 {% if request.state.current_user %}
-{% set movement_group_active = active_page in ['dashboard', 'movements'] %}
+{% set movement_group_active = active_page in ['dashboard', 'movements', 'tools'] %}
 {% set financial_view = active_financial_view | default('') %}
 {% set financial_group_active = active_page == 'financials' %}
 {% set movement_dashboard_active = active_page == 'dashboard' %}
@@ -121,6 +121,9 @@
                 <span class="nav-drawer-section-label">Tabelas</span>
                 <a href="/movements" class="nav-drawer-link nav-drawer-link--sub {% if movement_table_active %}active{% endif %}">
                     Tabela de movimentações
+                </a>
+                <a href="/tools" class="nav-drawer-link nav-drawer-link--sub {% if active_page == 'tools' %}active{% endif %}">
+                    Tabela de ferramentas
                 </a>
             </div>
         </section>

@@ -268,7 +268,6 @@ async def movement_manual_create(request: Request, db: Session = Depends(get_db)
             raise ValueError("Informe a data/hora.")
         employee_id = _parse_form_int(form, "employee_id")
         machine_id = _parse_form_int(form, "machine_id")
-        unit_cost = _parse_form_float(form, "unit_cost")
         notes = (form.get("notes") or "").strip()
         loan_status = (form.get("loan_status") or "").upper() or None
 
@@ -282,7 +281,6 @@ async def movement_manual_create(request: Request, db: Session = Depends(get_db)
             employee_id=employee_id,
             machine_id=machine_id,
             notes=notes,
-            unit_cost=unit_cost,
             loan_status=loan_status,
         )
     except ValueError as exc:
@@ -302,9 +300,6 @@ async def movement_update(movement_id: int, request: Request, db: Session = Depe
             kwargs["timestamp"] = ts
         if "notes" in form:
             kwargs["notes"] = (form.get("notes") or "").strip()
-        uc = _parse_form_float(form, "unit_cost")
-        if uc is not None:
-            kwargs["unit_cost"] = uc
         if (form.get("employee_id") or "").strip():
             kwargs["employee_id"] = _parse_form_int(form, "employee_id")
         if (form.get("machine_id") or "").strip():
