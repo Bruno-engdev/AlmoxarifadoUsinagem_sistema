@@ -183,7 +183,7 @@ body {
 .topbar-center-content {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 0.55rem;
     width: 100%;
     min-width: 0;
@@ -228,7 +228,7 @@ body {
     color: var(--text-primary);
 }
 .topbar-page-title {
-    font-size: 1.05rem;
+    font-size: 1.15rem;
     font-weight: 700;
     color: var(--text-primary);
     min-width: 0;
@@ -1103,16 +1103,15 @@ hr {
 
 /* ====== Category Tabs (Movements page) ====== */
 .category-tabs {
+    margin-left: 2rem;
     display: flex;
+    align-items: flex-start;
     gap: 4px;
     border-bottom: 2px solid var(--border-color);
     padding-bottom: 0;
-    width: 100%;
+    max-height: fit-content;
     margin-inline: calc(-1 * var(--content-inline-padding));
     padding-inline: var(--content-inline-padding);
-    width: calc(100% + 2 * var(--content-inline-padding));
-    margin-top: calc(-1 * var(--content-block-padding));
-
 }
 .category-tab {
     flex: 1;
@@ -1127,7 +1126,6 @@ hr {
     border-bottom: 2px solid transparent;
     margin-bottom: -2px;
     transition: color 0.15s ease, border-color 0.15s ease;
-
 }
 .category-tab:hover {
     color: var(--text-primary);
@@ -2067,12 +2065,14 @@ th.sortable.desc .sort-icon {
     flex: 0 1 auto;
 }
 .tools-action-btn {
+    height: 33px;
     font-size: 0.78rem;
     padding: 0.3rem 0.65rem;
     font-weight: 500;
     border-color: var(--border-color);
     color: var(--text-secondary);
 }
+
 .tools-action-btn:hover {
     background-color: var(--hover-bg);
     color: var(--text-primary);
@@ -2082,7 +2082,7 @@ th.sortable.desc .sort-icon {
     max-width: 480px;
 }
 .tools-search-form .input-group {
-    border-radius: 4px;
+    border-radius: 2px;
 }
 .tools-search-icon {
     font-size: 0.8rem;
@@ -2120,6 +2120,8 @@ th.sortable.desc .sort-icon {
 
 .ops-context-copy {
     min-width: 0;
+    display: flex;
+    gap:2rem;
 }
 
 .ops-context-heading {
@@ -2127,14 +2129,13 @@ th.sortable.desc .sort-icon {
     align-items: center;
     flex-wrap: wrap;
     gap: 0.5rem;
-    margin-top: 0.3rem;
 }
 
 .ops-context-kicker {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    font-size: 0.72rem;
+    font-size: 1.18rem;
     text-transform: uppercase;
     letter-spacing: 0.14em;
     font-weight: 700;
@@ -2146,7 +2147,7 @@ th.sortable.desc .sort-icon {
     font-size: 1.18rem;
     line-height: 1.1;
     font-weight: 700;
-    color: var(--text-primary);
+    color: var(--accent-blue);
 }
 
 .ops-help-toggle {
@@ -2282,7 +2283,7 @@ th.sortable.desc .sort-icon {
 .page-subheader .tools-search-form .input-group {
     overflow: visible;
     border: 1px solid rgba(183, 195, 216, 0.10);
-    border-radius: 10px;
+    border-radius: 2px;
     background: rgba(15, 23, 42, 0.92);
     position: relative;
     z-index: 1041;

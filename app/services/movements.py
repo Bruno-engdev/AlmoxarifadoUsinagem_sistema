@@ -6,8 +6,30 @@ Ensures current_stock is always kept in sync.
 from datetime import datetime
 from sqlalchemy.orm import Session
 
-from app.models import Movement, Tool
+from app.models import Movement, Tool, ToolPriceHistory
 from app.services.notifications import check_and_create_alert
+
+
+def get_latest_tool_price(db: Session, tool_id: int) -> float | None:
+    """Return the latest TOTVS-imported unit price for a tool, or None."""
+    row = (
+        db.query(ToolPriceHistory.preco_unitario)
+        .filter(ToolPriceHistory.tool_id == tool_id, ToolPriceHistory.is_latest.is_(True))
+        .first()
+    )
+    if row is None or row[0] is None:
+        return None
+    return float(row[0])
+
+
+def _resolve_tool_cost(db: Session, tool: Tool) -> float:
+    """Single source of truth for tool unit cost: TOTVS price history."""
+    price = get_latest_tool_price(db, tool.id)
+    if price is None:
+        return float(tool.unit_cost or 0.0)
+    if float(tool.unit_cost or 0.0) != price:
+        tool.unit_cost = price
+    return price
 
 
 def register_movement(
@@ -19,7 +41,6 @@ def register_movement(
     notes: str = "",
     category: str = "EMPRESTIMO",
     machine_id: int | None = None,
-    unit_cost: float | None = None,
 ) -> Movement:
     """
     Create a movement record and update the tool's current_stock.
@@ -53,14 +74,7 @@ def register_movement(
             f"Insufficient stock. Current: {tool.current_stock}, Requested: {quantity}"
         )
 
-    # Determine unit cost for this movement
-    if movement_type == "IN":
-        if unit_cost is None or unit_cost < 0:
-            raise ValueError("Unit cost is required for stock entry and must be >= 0.")
-        mv_cost = unit_cost
-        tool.unit_cost = unit_cost  # cache latest entry cost on tool
-    else:
-        mv_cost = tool.unit_cost or 0.0  # snapshot current cost for OUT
+    mv_cost = _resolve_tool_cost(db, tool)
 
     # Determine loan status for EMPRESTIMO OUT movements
     loan_status = None
@@ -154,7 +168,6 @@ def create_manual_movement(
     employee_id: int | None = None,
     machine_id: int | None = None,
     notes: str = "",
-    unit_cost: float | None = None,
     loan_status: str | None = None,
     return_timestamp: datetime | None = None,
 ) -> Movement:
@@ -189,14 +202,7 @@ def create_manual_movement(
         loan_status = None
         return_timestamp = None
 
-    # Cost handling
-    if movement_type == "IN":
-        if unit_cost is None or unit_cost < 0:
-            raise ValueError("Custo unitário é obrigatório para entrada e deve ser >= 0.")
-        mv_cost = unit_cost
-        tool.unit_cost = unit_cost
-    else:
-        mv_cost = unit_cost if (unit_cost is not None and unit_cost >= 0) else (tool.unit_cost or 0.0)
+    mv_cost = _resolve_tool_cost(db, tool)
 
     # Stock validation: simulate net delta first
     delta = _net_stock_delta(movement_type, category, loan_status, quantity)
@@ -236,7 +242,6 @@ def update_movement_admin(
     employee_id: int | None = None,
     machine_id: int | None = None,
     notes: str | None = None,
-    unit_cost: float | None = None,
     loan_status: str | None = None,
     return_timestamp: datetime | None = None,
 ) -> Movement:
@@ -271,10 +276,6 @@ def update_movement_admin(
         movement.timestamp = timestamp
     if notes is not None:
         movement.notes = notes
-    if unit_cost is not None:
-        if unit_cost < 0:
-            raise ValueError("Custo unitário não pode ser negativo.")
-        movement.unit_cost = unit_cost
 
     if movement.category == "EMPRESTIMO":
         if employee_id is not None:

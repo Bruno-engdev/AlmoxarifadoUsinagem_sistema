@@ -117,6 +117,7 @@ def tools_list(
         request=request,
         name="tools/index.html",
         context={
+            "active_page": "tools",
             "tools": tools,
             "employees": employees,
             "machines": machines,
@@ -326,8 +327,6 @@ async def tool_movement(
     quantity = int(form.get("quantity", 0))
     notes = form.get("notes", "")
     category = form.get("category", "EMPRESTIMO").upper()
-    raw_cost = form.get("unit_cost", "")
-    unit_cost = float(raw_cost) if raw_cost else None
 
     employee_id = None
     machine_id = None
@@ -339,7 +338,7 @@ async def tool_movement(
     try:
         register_movement(
             db, tool_id, employee_id, movement_type, quantity, notes,
-            category=category, machine_id=machine_id, unit_cost=unit_cost,
+            category=category, machine_id=machine_id,
         )
     except ValueError:
         pass  # Silently redirect – in production add flash messages

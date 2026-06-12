@@ -47,17 +47,27 @@
 <div class="page-subheader page-subheader--stacked">
   <div class="ops-context-bar">
     <div class="ops-context-copy">
-      <span class="ops-context-kicker">Operação</span>
       <div class="ops-context-heading">
-        <h1 class="ops-context-title">Log de movimentações</h1>
+        <h1 class="ops-context-title">Movimentações</h1>
         <button class="btn btn-sm ops-help-toggle collapsed" type="button"
                 data-bs-toggle="collapse" data-bs-target="#movementsPageHelp"
                 aria-expanded="false" aria-controls="movementsPageHelp">
           <i class="bi bi-question-circle"></i>
           <span class="d-none d-sm-inline">Ajuda</span>
         </button>
+      </div> 
+        <!-- Category tabs — primary context selector -->
+      <div class="category-tabs mb-0">
+        <a href="/movements?category=EMPRESTIMO&tool_id={{ selected_tool_id }}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&per_page={{ per_page }}"
+          class="category-tab {% if category == 'EMPRESTIMO' %}active{% endif %}">
+          <i class="bi bi-person-badge me-1"></i>Empréstimos
+        </a>
+        <a href="/movements?category=REPOSICAO&tool_id={{ selected_tool_id }}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&per_page={{ per_page }}"
+          class="category-tab {% if category == 'REPOSICAO' %}active{% endif %}">
+          <i class="bi bi-arrow-left-right me-1"></i>Reposições
+        </a>
       </div>
-    </div>
+    </div>  
     <div class="ops-context-meta">
       <span class="ops-meta-pill">
         <i class="bi bi-arrow-left-right"></i>
@@ -77,18 +87,7 @@
     </div>
   </div>
 
-  <!-- Category tabs — primary context selector -->
-  <div class="category-tabs mb-0">
-    <a href="/movements?category=EMPRESTIMO&tool_id={{ selected_tool_id }}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&per_page={{ per_page }}"
-       class="category-tab {% if category == 'EMPRESTIMO' %}active{% endif %}">
-      <i class="bi bi-person-badge me-1"></i>Empréstimos
-    </a>
-    <a href="/movements?category=REPOSICAO&tool_id={{ selected_tool_id }}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&search={{ search|urlencode }}&search_col={{ search_col|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&per_page={{ per_page }}"
-       class="category-tab {% if category == 'REPOSICAO' %}active{% endif %}">
-      <i class="bi bi-gear me-1"></i>Reposições
-    </a>
-  </div>
-
+  
   <div class="movements-toolbar-shell">
     <form method="GET" action="/movements" class="movements-toolbar-form" id="movementsFiltersForm">
       <input type="hidden" name="category" value="{{ category }}">
@@ -466,11 +465,6 @@
               <label class="form-label">Data / Hora *</label>
               <input type="datetime-local" name="timestamp" class="form-control" required>
             </div>
-            <div class="col-md-4">
-              <label class="form-label">Custo unitário (R$)</label>
-              <input type="number" name="unit_cost" step="0.01" min="0" class="form-control"
-                     placeholder="Obrigatório para entrada">
-            </div>
 
             <div class="col-md-6 manual-employee-field">
               <label class="form-label">Funcionário</label>
@@ -551,10 +545,6 @@
             <div class="col-md-5">
               <label class="form-label">Data / Hora *</label>
               <input type="datetime-local" name="timestamp" id="editTimestamp" class="form-control" required>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Custo unitário (R$)</label>
-              <input type="number" name="unit_cost" id="editUnitCost" step="0.01" min="0" class="form-control">
             </div>
 
             <div class="col-md-6 edit-employee-field">
@@ -701,7 +691,6 @@
             modalEl.querySelector('#editType').value = d.mvType === 'IN' ? 'Entrada' : 'Saída';
             modalEl.querySelector('#editQuantity').value = d.mvQuantity || '';
             modalEl.querySelector('#editTimestamp').value = d.mvTimestamp || '';
-            modalEl.querySelector('#editUnitCost').value = d.mvUnitCost || '';
             modalEl.querySelector('#editEmployee').value = d.mvEmployeeId || '';
             modalEl.querySelector('#editMachine').value = d.mvMachineId || '';
             modalEl.querySelector('#editLoanStatus').value = d.mvLoanStatus || 'PENDENTE';
